@@ -34,7 +34,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Thư viện Quét Mã Vạch (MỚI THÊM) -->
+    <!-- Thư viện Quét Mã Vạch -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
@@ -128,7 +128,7 @@
             );
         };
 
-        // --- MỚI: COMPONENT QUÉT MÃ VẠCH (CAMERA) ---
+        // --- COMPONENT QUÉT MÃ VẠCH (CAMERA) ---
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
                 const html5QrcodeScanner = new Html5QrcodeScanner(
@@ -138,11 +138,10 @@
                 );
 
                 html5QrcodeScanner.render((decodedText) => {
-                    // Khi quét thành công
                     html5QrcodeScanner.clear();
                     onScanSuccess(decodedText);
                 }, (error) => {
-                    // Đang dò (bỏ qua log để tránh nặng máy)
+                    // Đang dò
                 });
 
                 return () => {
@@ -215,7 +214,6 @@
                 setTimeout(() => setMsg({ text: '', type: '' }), 3000);
             };
 
-            // Hàm xử lý khi ấn Nút Quét Hoặc Gõ tay
             const fetchProductData = async (codeToFetch) => {
                 if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
                 setIsLoading(true);
@@ -230,7 +228,6 @@
                 } finally { setIsLoading(false); }
             };
 
-            // Callback khi camera quét xong
             const handleScanSuccess = (decodedText) => {
                 setBarcode(decodedText);
                 setIsScanning(false);
@@ -284,14 +281,14 @@
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2 w-full overflow-hidden">
                                     <label className="block text-sm font-semibold text-navy">SL Tồn</label>
-                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy outline-none" placeholder="VD: 15" />
+                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-3 text-sm text-navy outline-none" placeholder="VD: 15" />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-navy">Ngày Hết Hạn</label>
-                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy outline-none" />
+                                <div className="space-y-2 w-full overflow-hidden">
+                                    <label className="block text-sm font-semibold text-navy whitespace-nowrap">Ngày Hết Hạn</label>
+                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-3 text-sm text-navy outline-none" />
                                 </div>
                             </div>
 
@@ -302,7 +299,7 @@
                                         <Icon name="refresh-ccw" className={action === 'doitra' ? 'text-blue' : 'text-blue/40'} /> Đổi Trả NPP
                                     </button>
                                     <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy' : 'border-blue/20 text-slate'}`}>
-                                        <Icon name="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'} /> Giảm Giá TT
+                                        <Icon name="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'} /> Bán Giảm Giá
                                     </button>
                                 </div>
                                 {action === 'doitra' && (
@@ -367,10 +364,29 @@
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                        setImgBase64(reader.result.split(',')[1]); 
-                    };
                     reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 600; 
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > MAX_WIDTH) {
+                                height = Math.round((height * MAX_WIDTH) / width);
+                                width = MAX_WIDTH;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                            setImgBase64(compressedBase64);
+                        };
+                    };
                 }
             };
 
@@ -465,16 +481,16 @@
 
                                     {(product.hasImage === false || isNewModel) && (
                                         <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-navy hover:bg-navy/5 transition-all relative overflow-hidden">
-                                            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                                             {imgBase64 ? (
                                                 <div className="flex flex-col items-center text-green relative z-10">
                                                     <Icon name="check-circle-2" className="w-10 h-10 mb-2" />
-                                                    <span className="text-sm font-bold">Đã tải ảnh lên thành công!</span>
+                                                    <span className="text-sm font-bold">Đã xử lý xong ảnh!</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex flex-col items-center relative z-10">
                                                     <div className="w-12 h-12 bg-sand/50 rounded-full flex items-center justify-center mb-3 text-navy"><Icon name="upload-cloud" /></div>
-                                                    <span className="text-sm text-navy font-semibold">Bấm để chụp ảnh bao bì</span>
+                                                    <span className="text-sm text-navy font-semibold text-center">Bấm để chụp ảnh<br/>hoặc chọn từ Thư viện</span>
                                                 </div>
                                             )}
                                         </label>
@@ -491,17 +507,26 @@
             );
         };
 
-        // --- VIEW 3: DASHBOARD ---
+        // --- VIEW 3: DASHBOARD (CÓ MẬT KHẨU BẢO VỆ) ---
         const ViewDashboard = () => {
+            // State xác thực
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [password, setPassword] = useState('');
+            const [loginError, setLoginError] = useState('');
+
+            // Data states
             const [returns, setReturns] = useState([]);
             const [discounts, setDiscounts] = useState([]);
             const [orders, setOrders] = useState([]);
             const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
-            const [isLoading, setIsLoading] = useState(true);
+            const [isLoading, setIsLoading] = useState(false);
             const [apiError, setApiError] = useState('');
 
             useEffect(() => {
+                if (!isAuthenticated) return; // Chỉ lấy dữ liệu khi đã nhập đúng pass
+
                 const fetchDashboardData = async () => {
+                    setIsLoading(true);
                     try {
                         const response = await fetch(`${API_URL}?action=getDashboard`);
                         const result = await response.json();
@@ -520,7 +545,49 @@
                     }
                 };
                 fetchDashboardData();
-            }, []);
+            }, [isAuthenticated]);
+
+            // Hàm kiểm tra Đăng Nhập
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (password === '56789') {
+                    setIsAuthenticated(true);
+                    setLoginError('');
+                } else {
+                    setLoginError('Mã PIN không chính xác!');
+                }
+            };
+
+            // MÀN HÌNH ĐĂNG NHẬP
+            if (!isAuthenticated) {
+                return (
+                    <div className="max-w-md mx-auto pt-32 px-4 min-h-screen flex flex-col items-center">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-navy/5 w-full text-center relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
+                            <div className="w-16 h-16 bg-navy/5 text-navy rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Icon name="lock" className="w-8 h-8" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-navy mb-2">Khu Vực Quản Lý</h2>
+                            <p className="text-slate text-sm mb-6">Vui lòng nhập mã PIN để truy cập Dashboard</p>
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <div>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="• • • • •"
+                                        className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-center text-navy font-bold tracking-[0.5em] text-xl outline-none focus:ring-2 focus:ring-blue transition-all"
+                                    />
+                                </div>
+                                {loginError && <p className="text-red text-sm font-semibold">{loginError}</p>}
+                                <button type="submit" className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl transition-all shadow-md">
+                                    XÁC NHẬN
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
 
             const groupedOrders = orders.reduce((acc, order) => {
                 if (!acc[order.npp]) acc[order.npp] = [];
@@ -555,7 +622,7 @@
             if(isLoading) return <div className="h-screen flex flex-col items-center justify-center text-navy font-bold text-lg"><Icon name="loader-2" className="animate-spin w-10 h-10 mb-4 text-gold" />Đang tải dữ liệu...</div>;
 
             return (
-                <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6 pb-28">
+                <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6 pb-28 animate-in fade-in">
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-navy tracking-tight">ONE STOP <span className="font-light">| Operations</span></h1>
                         <p className="text-slate mt-1 font-medium">Trung tâm điều hành cửa hàng</p>
