@@ -264,10 +264,19 @@
                             
                             {product && (
                                 <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4 animate-in fade-in">
-                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-gold"><Icon name="package-search" /></div>
-                                    <div>
+                                    {/* Cập nhật CẬN DATE: Hiển thị hình ảnh từ Google Sheets tương tự Đặt Hàng */}
+                                    {product.imageUrl ? (
+                                        <div className="w-12 h-12 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                                            <img src={product.imageUrl} className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-gold shrink-0 shadow-sm">
+                                            <Icon name="package-search" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
                                         <p className="text-[11px] font-semibold text-navy/50 uppercase">Sản phẩm</p>
-                                        <p className="font-bold text-navy leading-tight">{product.name}</p>
+                                        <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
                                     </div>
                                 </div>
                             )}
@@ -386,8 +395,7 @@
             const handleSubmit = () => {
                 if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
                 
-                const hasPic = product.hasImage !== false || imgBase64 !== '';
-                if(!hasPic) return showMsg("Bắt buộc phải tải ảnh lên cho sản phẩm này!");
+                // ĐÃ XÓA BLOCK CODE BẮT BUỘC TẢI ẢNH Ở ĐÂY
                 
                 const payload = { 
                     action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp,
@@ -430,18 +438,15 @@
                                         <div className="w-16 h-16 rounded-xl border border-green overflow-hidden shrink-0 flex items-center justify-center bg-white shadow-sm">
                                             <img src={`data:image/jpeg;base64,${imgBase64}`} className="w-full h-full object-cover" />
                                         </div>
-                                    ) : product.hasImage !== false ? (
+                                    ) : product.imageUrl ? (
                                         <div className="w-16 h-16 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                                            {product.imageUrl ? (
-                                                <img src={product.imageUrl} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <Icon name="image" className="text-blue/50" />
-                                            )}
+                                            <img src={product.imageUrl} className="w-full h-full object-cover" />
                                         </div>
                                     ) : (
-                                        <div className="w-16 h-16 bg-red/10 rounded-xl border border-red/20 flex flex-col items-center justify-center shrink-0 text-red">
+                                        // ĐÃ LOẠI BỎ CẢNH BÁO "THIẾU ẢNH" MÀU ĐỎ, CHUYỂN SANG MÀU TRUNG TÍNH
+                                        <div className="w-16 h-16 bg-navy/5 rounded-xl border border-navy/10 flex flex-col items-center justify-center shrink-0 text-navy/50 shadow-sm">
                                             <Icon name="image" className="w-5 h-5" />
-                                            <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Thiếu Ảnh</span>
+                                            <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Chưa Có</span>
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
@@ -471,22 +476,16 @@
                             </div>
 
                             {product && (
-                                <div className={`p-5 rounded-2xl border ${product.hasImage === false ? 'border-red/30 bg-red/5' : 'border-blue/20 bg-sand/10'}`}>
+                                <div className="p-5 rounded-2xl border border-blue/20 bg-sand/10">
                                     <div className="mb-4">
-                                        <p className={`text-sm font-bold ${product.hasImage === false ? 'text-darkred' : 'text-navy'}`}>
-                                            Hình ảnh sản phẩm {product.hasImage === false && <span className="text-red">*</span>}
-                                        </p>
-                                        <p className="text-xs text-slate mt-1">
-                                            {product.hasImage === false ? 'Bắt buộc tải ảnh lên để tiếp tục.' : 'Tùy chọn tải ảnh mới nếu bao bì thay đổi.'}
-                                        </p>
+                                        <p className="text-sm font-bold text-navy">Hình ảnh sản phẩm</p>
+                                        <p className="text-xs text-slate mt-1">Tùy chọn tải ảnh mới để cập nhật bao bì cho hệ thống.</p>
                                     </div>
                                     
-                                    {product.hasImage !== false && (
-                                        <label className="flex items-center gap-3 mb-4 cursor-pointer">
-                                            <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded border-blue/50" />
-                                            <span className="text-sm text-navy font-semibold">Cập nhật mẫu mã mới</span>
-                                        </label>
-                                    )}
+                                    <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                                        <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded border-blue/50" />
+                                        <span className="text-sm text-navy font-semibold">Tải lên / Cập nhật ảnh</span>
+                                    </label>
 
                                     {(product.hasImage === false || isNewModel) && (
                                         <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-navy hover:bg-navy/5 transition-all relative overflow-hidden">
@@ -538,7 +537,6 @@
             const [activeOrderNppTab, setActiveOrderNppTab] = useState('');
             const [activeReturnNppTab, setActiveReturnNppTab] = useState('');
 
-            // Tự động Load API khi làm mới
             const fetchDashboardData = async () => {
                 setIsLoading(true);
                 try {
@@ -564,7 +562,6 @@
                 showMsg("Đã làm mới dữ liệu!", "success");
             }
 
-            // MỚI: TỰ ĐỘNG CẬP NHẬT SAU MỖI 3 PHÚT (180,000 ms)
             useEffect(() => {
                 if (!isAuthenticated) return;
                 fetchDashboardData();
@@ -617,7 +614,6 @@
                 return { bg: 'bg-darkred/10', text: 'text-darkred', border: 'border-darkred/30 animate-pulse', icon: '🚨 Khẩn' };
             };
 
-            // FIX CỰC KỲ QUAN TRỌNG ĐỂ CẬP NHẬT SHEETS KHÔNG BỊ LỖI MÀ VẪN MƯỢT
             const handleReturnStatus = async (id, newStatus) => {
                 setReturns(returns.map(r => r.id === id ? { ...r, status: newStatus } : r));
                 showMsg("Đang đồng bộ trạng thái đổi trả...", "warning");
@@ -625,7 +621,7 @@
                 try {
                     await fetch(API_URL, {
                         method: 'POST',
-                        mode: 'no-cors', // Cần thiết để gửi đi thành công mà không bị trình duyệt chặn
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action: "updateReturnStatus", id: id, status: newStatus })
                     });
@@ -643,7 +639,7 @@
                 try {
                     await fetch(API_URL, {
                         method: 'POST',
-                        mode: 'no-cors', // Cần thiết để gửi đi thành công mà không bị trình duyệt chặn
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action: "completeOrderNpp", npp: nppName })
                     });
