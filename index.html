@@ -160,16 +160,16 @@
         };
 
         // --- COMPONENT: GAUGE CHART ---
-        const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
+        const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color, bgClass = "bg-white" }) => {
             const percentage = max > 0 ? Math.min(value / max, 1) : 0;
             const cx = 100; const cy = 90; const r = 75; const strokeWidth = 24;
             const circumference = Math.PI * r;
             const strokeDashoffset = circumference - (percentage * circumference);
 
             return (
-                <div className="flex flex-col items-center p-6 bg-white rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5">
+                <div className={`flex flex-col items-center p-6 rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5 ${bgClass}`}>
                     <div className="w-full text-center mb-6">
-                        <span className="text-slate font-medium text-sm block mb-1">{label}</span>
+                        <span className="text-navy font-extrabold text-[13px] block mb-1 uppercase tracking-wider">{label}</span>
                         <span className="text-3xl font-extrabold text-navy">{max}</span>
                     </div>
                     <div className="relative w-56 h-32 overflow-hidden flex justify-center">
@@ -181,9 +181,9 @@
                             <span className="text-xl font-bold" style={{ color: color }}>{Math.round(percentage * 100)}%</span>
                         </div>
                     </div>
-                    <div className="w-full mt-2 pt-4 border-t border-sand/50">
-                        <p className="text-center text-sm font-semibold text-navy mb-2">Công suất xử lý</p>
-                        <div className="flex justify-between text-xs font-medium text-slate">
+                    <div className="w-full mt-2 pt-4 border-t border-navy/10">
+                        <p className="text-center text-xs font-extrabold text-navy/70 mb-2 uppercase tracking-wide">Tiến độ hoàn thành</p>
+                        <div className="flex justify-between text-xs font-bold text-navy">
                             <span>{subLabelLeft}</span>
                             <span>{subLabelRight}</span>
                         </div>
@@ -373,7 +373,6 @@
                             const MAX_WIDTH = 600; 
                             let width = img.width;
                             let height = img.height;
-
                             if (width > MAX_WIDTH) {
                                 height = Math.round((height * MAX_WIDTH) / width);
                                 width = MAX_WIDTH;
@@ -756,9 +755,9 @@
                     )}
 
                     <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 ${lockClass}`}>
-                        <GaugeChart value={processedDiscounts} max={totalDiscounts} label="Xử lý cận Date & Giảm giá" subLabelLeft={`Đã KT: ${processedDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color={processedDiscounts === totalDiscounts && totalDiscounts > 0 ? "#0AA878" : "#F0573A"} />
-                        <GaugeChart value={processedReturns} max={totalReturns} label="Yêu cầu Đổi trả" subLabelLeft={`Đã xử lý: ${processedReturns}`} subLabelRight={`Chờ: ${pendingReturns}`} color="#103F67" />
-                        <GaugeChart value={completedOrdersCount} max={totalOrders} label="Xử lý Đặt hàng" subLabelLeft={`Đã chốt: ${completedOrdersCount}`} subLabelRight={`Đang chờ: ${pendingOrders}`} color="#DAAF4F" />
+                        <GaugeChart value={processedDiscounts} max={totalDiscounts} label="Xử lý cận Date & Giảm giá" subLabelLeft={`Đã KT: ${processedDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color={processedDiscounts === totalDiscounts && totalDiscounts > 0 ? "#0AA878" : "#F0573A"} bgClass="bg-red/10" />
+                        <GaugeChart value={processedReturns} max={totalReturns} label="Yêu cầu Đổi trả" subLabelLeft={`Đã xử lý: ${processedReturns}`} subLabelRight={`Chờ: ${pendingReturns}`} color="#103F67" bgClass="bg-navy/10" />
+                        <GaugeChart value={completedOrdersCount} max={totalOrders} label="Xử lý Đặt hàng" subLabelLeft={`Đã chốt: ${completedOrdersCount}`} subLabelRight={`Đang chờ: ${pendingOrders}`} color="#DAAF4F" bgClass="bg-gold/20" />
                     </div>
 
                     <div className="space-y-10">
@@ -1037,16 +1036,13 @@
             const [activeTab, setActiveTab] = useState('candate');
             const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
             
-            const [syncQueue, setSyncQueue] = useState(() => {
-                const saved = localStorage.getItem('oneStopSyncQueue');
-                return saved ? JSON.parse(saved) : [];
-            });
-            const [syncTotal, setSyncTotal] = useState(syncQueue.length);
+            // Xóa LocalStorage để tuân thủ quy tắc bảo mật của môi trường Preview Iframe
+            const [syncQueue, setSyncQueue] = useState([]);
+            const [syncTotal, setSyncTotal] = useState(0);
             const [syncProcessed, setSyncProcessed] = useState(0);
             const isSyncingRef = useRef(false);
 
             useEffect(() => {
-                localStorage.setItem('oneStopSyncQueue', JSON.stringify(syncQueue));
                 if (syncQueue.length === 0) {
                     setSyncTotal(0);
                     setSyncProcessed(0);
