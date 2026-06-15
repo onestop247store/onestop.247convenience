@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ONE STOP - Operations Hub</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#103F67',
+                        sand: '#E4DBD1',
+                        gold: '#DAAF4F',
+                        blue: '#39A8D9',
+                        green: '#0AA878',
+                        red: '#F0573A',
+                        darkred: '#B92025',
+                        slate: '#2D4155'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Babel cho file tĩnh -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { background-color: #E4DBD1; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent;}
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        /* Toast Animation */
+        @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; display: none; } }
+        .toast-message { animation: fadeOut 3s forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // CẤU HÌNH API Ở ĐÂY 
+        // Thay link này bằng Web App URL từ Google Apps Script của bạn
+        // ==========================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec"; 
+        
+        const { useState, useEffect } = React;
+
+        const MOCK_NPP_LIST = ['NPP Vinamilk HCM', 'Kho Tổng ONE STOP', 'NPP Đồ uống Local', 'NPP Bánh ngọt ĐN', 'NPP Masan'];
+
+        // --- COMPONENT: MESSAGE TOAST ---
+        const Toast = ({ message, type }) => {
+            if (!message) return null;
+            const bg = type === 'error' ? 'bg-red text-white' : 'bg-green text-white';
+            return (
+                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg text-sm font-bold toast-message ${bg}`}>
+                    {message}
+                </div>
+            );
+        };
+
+        // --- COMPONENT: GAUGE CHART ---
+        const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
+            const radius = 70;
+            const circumference = Math.PI * radius;
+            const percentage = max > 0 ? Math.min(value / max, 1) : 1;
+            const strokeDashoffset = circumference - percentage * circumference;
+
+            return (
+                <div className="flex flex-col items-center p-5 bg-white rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.04)] border border-navy/5">
+                    <div className="flex w-full justify-between items-start mb-2">
+                        <span className="text-slate font-medium text-sm">{label}</span>
+                        <span className="text-2xl font-bold text-navy">{max}</span>
+                    </div>
+                    <div className="relative w-48 h-24 overflow-hidden flex justify-center mt-2">
+                        <svg className="w-full h-full" viewBox="0 0 200 100">
+                            <path d="M 20 90 A 70 70 0 0 1 180 90" fill="none" stroke="#E4DBD1" strokeWidth="16" strokeLinecap="round" />
+                            <path d="M 20 90 A 70 70 0 0 1 180 90" fill="none" stroke={color} strokeWidth="16" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000 ease-out" />
+                        </svg>
+                        <div className="absolute bottom-1 flex flex-col items-center">
+                            <span className="text-2xl font-bold" style={{ color: color }}>{Math.round(percentage * 100)}%</span>
+                        </div>
+                    </div>
+                    <div className="w-full flex justify-between mt-4 text-[11px] font-medium text-slate/70 border-t border-sand/50 pt-3 uppercase tracking-wider">
+                        <span>{subLabelLeft}</span>
+                        <span>{subLabelRight}</span>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- VIEW 1: CẬN DATE ---
+        const ViewCanDate = () => {
+            const [barcode, setBarcode] = useState('');
+            const [product, setProduct] = useState(null);
+            const [qty, setQty] = useState('');
+            const [expDate, setExpDate] = useState('');
+            const [action, setAction] = useState('');
+            const [npp, setNpp] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [msg, setMsg] = useState({ text: '', type: '' });
+
+            const showMsg = (text, type = 'error') => {
+                setMsg({ text, type });
+                setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+            };
+
+            const handleScan = async () => {
+                if(!barcode) return showMsg("Vui lòng nhập Mã vạch!");
+                setIsLoading(true);
+                try {
+                    const response = await fetch(`${API_URL}?action=scan&barcode=${barcode}`);
+                    const data = await response.json();
+                    if(data.found) { setProduct(data); setNpp(data.npp); } 
+                    else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
+                } catch (error) {
+                    console.log("Mock scan mode (API error/CORS)");
+                    setProduct({ name: 'Sữa tươi Vinamilk Demo ' + barcode, npp: 'NPP Vinamilk HCM' });
+                    setNpp('NPP Vinamilk HCM');
+                } finally { setIsLoading(false); }
+            };
+
+            const handleSubmit = async () => {
+                if(!product || !qty || !expDate || !action) return showMsg("Vui lòng điền đủ thông tin!");
+                if(action === 'doitra' && !npp) return showMsg("Vui lòng chọn NPP đổi trả!");
+                setIsLoading(true);
+                
+                const payload = {
+                    action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, 
+                    expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp
+                };
+
+                try {
+                    await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                    showMsg("Đã ghi nhận dữ liệu thành công!", "success");
+                    setBarcode(''); setProduct(null); setQty(''); setExpDate(''); setAction(''); setNpp('');
+                } catch (error) { showMsg("Lỗi gửi dữ liệu!"); } 
+                finally { setIsLoading(false); }
+            };
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
+                    <Toast message={msg.text} type={msg.type} />
+                    <div className="bg-white rounded-3xl shadow-sm p-6">
+                        <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
+                            <span className="bg-gold/20 p-2 rounded-xl mr-3 text-gold"><i data-lucide="clock"></i></span> Rà Soát Hạn Sử Dụng
+                        </h2>
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-navy">Mã vạch sản phẩm</label>
+                                <div className="flex gap-2">
+                                    <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
+                                    <button onClick={handleScan} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14 transition-colors">{isLoading ? "..." : <i data-lucide="scan-line"></i>}</button>
+                                </div>
+                            </div>
+                            
+                            {product && (
+                                <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-gold"><i data-lucide="package-search"></i></div>
+                                    <div>
+                                        <p className="text-[11px] font-semibold text-navy/50 uppercase">Sản phẩm</p>
+                                        <p className="font-bold text-navy leading-tight">{product.name}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-navy">SL Tồn</label>
+                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy outline-none" placeholder="VD: 15" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-navy">Ngày Hết Hạn</label>
+                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy outline-none" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <label className="block text-sm font-semibold text-navy">Hướng xử lý <span className="text-red">*</span></label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => setAction('doitra')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'doitra' ? 'border-blue bg-blue/10 text-navy' : 'border-blue/20 text-slate'}`}>
+                                        <i data-lucide="refresh-ccw" className={action === 'doitra' ? 'text-blue' : 'text-blue/40'}></i> Đổi Trả NPP
+                                    </button>
+                                    <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy' : 'border-blue/20 text-slate'}`}>
+                                        <i data-lucide="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'}></i> Giảm Giá TT
+                                    </button>
+                                </div>
+                                {action === 'doitra' && (
+                                    <div className="space-y-2 mt-4 p-4 bg-blue/5 border border-blue/20 rounded-2xl animate-in fade-in">
+                                        <label className="block text-sm font-semibold text-navy">Chọn NPP Đổi Trả <span className="text-red">*</span></label>
+                                        <div className="relative">
+                                            <input list="npp-list" value={npp} onChange={(e)=>setNpp(e.target.value)} className="w-full bg-white border border-blue/50 rounded-xl p-3 pr-10 text-navy outline-none shadow-sm" placeholder="Tìm NPP..." />
+                                            <datalist id="npp-list">{MOCK_NPP_LIST.map(n => <option key={n} value={n} />)}</datalist>
+                                            <i data-lucide="search" className="absolute right-3 top-3.5 text-navy/40 w-5 h-5"></i>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center">
+                                {isLoading ? "ĐANG LƯU..." : "LƯU THÔNG TIN"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- VIEW 2: ĐẶT HÀNG ---
+        const ViewDatHang = () => {
+            const [barcode, setBarcode] = useState('');
+            const [product, setProduct] = useState(null);
+            const [qty, setQty] = useState('');
+            const [npp, setNpp] = useState('');
+            const [isNewModel, setIsNewModel] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+            const [msg, setMsg] = useState({ text: '', type: '' });
+
+            const showMsg = (text, type = 'error') => {
+                setMsg({ text, type });
+                setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+            };
+
+            const handleScan = async () => {
+                if(!barcode) return showMsg("Vui lòng nhập Mã vạch!");
+                setIsLoading(true);
+                try {
+                    const response = await fetch(`${API_URL}?action=scan&barcode=${barcode}`);
+                    const data = await response.json();
+                    if(data.found) { setProduct(data); setNpp(data.npp); } 
+                    else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
+                } catch (error) {
+                    console.log("Mock scan mode");
+                    // Giả lập 1 sản phẩm bị thiếu ảnh
+                    setProduct({ name: 'Cà phê đặc sản ONE STOP', npp: 'Kho Tổng ONE STOP', hasImage: false });
+                    setNpp('Kho Tổng ONE STOP');
+                } finally { setIsLoading(false); }
+            };
+
+            const handleSubmit = async () => {
+                if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
+                if(!product.hasImage && !isNewModel) return showMsg("Bắt buộc phải tải ảnh lên cho sản phẩm này!");
+                
+                setIsLoading(true);
+                const payload = { action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp };
+                
+                try {
+                    await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                    showMsg("Gửi yêu cầu đặt hàng thành công!", "success");
+                    setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false);
+                } catch (error) { showMsg("Lỗi gửi dữ liệu!"); } 
+                finally { setIsLoading(false); }
+            };
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
+                    <Toast message={msg.text} type={msg.type} />
+                    <div className="bg-white rounded-3xl shadow-sm p-6">
+                        <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
+                            <span className="bg-blue/20 p-2 rounded-xl mr-3 text-blue"><i data-lucide="shopping-cart"></i></span> Yêu Cầu Đặt Hàng
+                        </h2>
+
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-navy">Mã Barcode</label>
+                                <div className="flex gap-2">
+                                    <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
+                                    <button onClick={handleScan} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14">{isLoading ? "..." : <i data-lucide="scan-line"></i>}</button>
+                                </div>
+                            </div>
+
+                            {product && (
+                                <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex gap-4 items-center">
+                                    {product.hasImage !== false ? (
+                                        <div className="w-16 h-16 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0">
+                                            <i data-lucide="image" className="text-blue/50"></i>
+                                        </div>
+                                    ) : (
+                                        <div className="w-16 h-16 bg-red/10 rounded-xl border border-red/20 flex flex-col items-center justify-center shrink-0 text-red">
+                                            <i data-lucide="image" className="w-5 h-5"></i>
+                                            <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Thiếu Ảnh</span>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <p className="font-bold text-navy leading-tight">{product.name}</p>
+                                        <p className="text-xs text-slate mt-1 flex items-center gap-1"><i data-lucide="map-pin" className="w-3 h-3"></i> {product.npp}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-navy">Số lượng dự kiến <span className="text-red">*</span></label>
+                                <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy outline-none" placeholder="Nhập số lượng..." />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-navy">Nhà Phân Phối <span className="text-red">*</span></label>
+                                <div className="relative">
+                                    <input list="npp-list-order" value={npp} onChange={(e)=>setNpp(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-navy outline-none" placeholder="Tìm NPP..." />
+                                    <datalist id="npp-list-order">{MOCK_NPP_LIST.map(n => <option key={n} value={n} />)}</datalist>
+                                    <i data-lucide="search" className="absolute right-4 top-4 text-navy/40 w-5 h-5"></i>
+                                </div>
+                            </div>
+
+                            {product && (
+                                <div className={`p-5 rounded-2xl border ${product.hasImage === false ? 'border-red/30 bg-red/5' : 'border-blue/20 bg-sand/10'}`}>
+                                    <div className="mb-4">
+                                        <p className={`text-sm font-bold ${product.hasImage === false ? 'text-darkred' : 'text-navy'}`}>
+                                            Hình ảnh sản phẩm {product.hasImage === false && <span className="text-red">*</span>}
+                                        </p>
+                                        <p className="text-xs text-slate mt-1">
+                                            {product.hasImage === false ? 'Bắt buộc tải ảnh lên để tiếp tục.' : 'Tùy chọn tải ảnh mới nếu bao bì thay đổi.'}
+                                        </p>
+                                    </div>
+                                    
+                                    {product.hasImage !== false && (
+                                        <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                                            <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded" />
+                                            <span className="text-sm text-navy font-semibold">Cập nhật mẫu mã mới</span>
+                                        </label>
+                                    )}
+
+                                    {(product.hasImage === false || isNewModel) && (
+                                        <div className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-navy hover:bg-navy/5">
+                                            <div className="w-12 h-12 bg-sand/50 rounded-full flex items-center justify-center mb-3 text-navy"><i data-lucide="upload-cloud"></i></div>
+                                            <span className="text-sm text-navy font-semibold">Tải ảnh mặt trước bao bì</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center">
+                                {isLoading ? "ĐANG GỬI..." : "GỬI YÊU CẦU"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- VIEW 3: DASHBOARD ---
+        const ViewDashboard = () => {
+            const [returns, setReturns] = useState([]);
+            const [discounts, setDiscounts] = useState([]);
+            const [orders, setOrders] = useState([]);
+            const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                const fetchDashboardData = async () => {
+                    try {
+                        const response = await fetch(`${API_URL}?action=getDashboard`);
+                        const result = await response.json();
+                        if (result.returns) {
+                            setReturns(result.returns);
+                            setDiscounts(result.discounts);
+                            setOrders(result.orders);
+                        }
+                    } catch (error) {
+                        console.log("Mock Dashboard Data");
+                        setReturns([
+                            { id: 1, name: 'Sữa tươi Vinamilk', qty: 10, npp: 'NPP Vinamilk', status: 'Chờ xử lý', note: '' },
+                            { id: 2, name: 'Bánh Kinh Đô', qty: 5, npp: 'NPP Mondelez', status: 'Đã báo NPP', note: '' }
+                        ]);
+                        setDiscounts([
+                            { id: 1, name: 'Bánh Sandwitch', daysLeft: 7, qtyOriginal: 20, qtyActual: '', suggestPct: 40, actualPct: 40 },
+                            { id: 2, name: 'Nước trái cây TH', daysLeft: 15, qtyOriginal: 12, qtyActual: 12, suggestPct: 20, actualPct: 25 }
+                        ]);
+                        setOrders([
+                            { id: 1, name: 'Cold Brew', qty: 24, npp: 'Kho Tổng ONE STOP', hoursWait: 10 },
+                            { id: 2, name: 'Kombucha Vải', qty: 24, npp: 'NPP Đồ uống Local', hoursWait: 26 },
+                            { id: 3, name: 'Bánh mì que', qty: 30, npp: 'NPP Bánh ngọt ĐN', hoursWait: 38 }
+                        ]);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                fetchDashboardData();
+            }, []);
+
+            const groupedOrders = orders.reduce((acc, order) => {
+                if (!acc[order.npp]) acc[order.npp] = [];
+                acc[order.npp].push(order);
+                return acc;
+            }, {});
+
+            const getWaitAlert = (hours) => {
+                if (hours < 12) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn' };
+                if (hours < 24) return { bg: 'bg-gold/15', text: 'text-darkred', border: 'border-gold/30', icon: '⏱️ Chú ý' };
+                if (hours < 36) return { bg: 'bg-red/15', text: 'text-darkred', border: 'border-red/30', icon: '⚠️ Trễ' };
+                return { bg: 'bg-darkred/10', text: 'text-darkred', border: 'border-darkred/30 animate-pulse', icon: '🚨 Khẩn' };
+            };
+
+            const handleReturnStatus = (id, newStatus) => setReturns(returns.map(r => r.id === id ? { ...r, status: newStatus } : r));
+            const handleCloseOrders = (npp) => {
+                setOrders(orders.filter(o => o.npp !== npp));
+                setCompletedOrdersCount(prev => prev + 1);
+            };
+
+            const totalReturns = returns.length;
+            const pendingReturns = returns.filter(r => r.status === 'Chờ xử lý').length;
+            const processedReturns = totalReturns - pendingReturns;
+
+            const totalDiscounts = discounts.length;
+            const processedDiscounts = discounts.filter(d => d.qtyActual !== '').length;
+            const pendingDiscounts = totalDiscounts - processedDiscounts;
+
+            const pendingOrders = Object.keys(groupedOrders).length;
+            const totalOrders = pendingOrders + completedOrdersCount;
+
+            if(isLoading) return <div className="h-screen flex items-center justify-center text-navy font-bold text-xl">Đang tải dữ liệu...</div>;
+
+            return (
+                <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6 pb-28">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-navy tracking-tight">ONE STOP <span className="font-light">| Operations</span></h1>
+                        <p className="text-slate mt-1 font-medium">Trung tâm điều hành cửa hàng</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        <GaugeChart value={processedDiscounts} max={totalDiscounts} label="Xử lý cận Date & Giảm giá" subLabelLeft={`Đã KT: ${processedDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color={processedDiscounts === totalDiscounts && totalDiscounts > 0 ? "#0AA878" : "#F0573A"} />
+                        <GaugeChart value={processedReturns} max={totalReturns} label="Yêu cầu Đổi trả" subLabelLeft={`Đã xử lý: ${processedReturns}`} subLabelRight={`Chờ: ${pendingReturns}`} color="#103F67" />
+                        <GaugeChart value={completedOrdersCount} max={totalOrders} label="Xử lý Đặt hàng" subLabelLeft={`Đã chốt: ${completedOrdersCount}`} subLabelRight={`Đang chờ: ${pendingOrders}`} color="#DAAF4F" />
+                    </div>
+
+                    <div className="space-y-10">
+                        {/* KHU 1: GIẢM GIÁ */}
+                        <div className="bg-white rounded-3xl shadow-sm border-2 border-red/20 overflow-hidden relative">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-red"></div>
+                            <div className="bg-white p-5 border-b border-sand/50 flex justify-between items-center">
+                                <h2 className="font-bold text-navy flex items-center"><i data-lucide="alert-triangle" className="mr-3 text-red"></i> TỒN KHO CẬN DATE & GIẢM GIÁ</h2>
+                                <span className="text-xs font-bold text-darkred bg-red/10 px-3 py-1.5 rounded-full uppercase">Bắt buộc cập nhật</span>
+                            </div>
+                            <div className="p-0 overflow-x-auto">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="bg-sand/30 text-slate">
+                                        <tr>
+                                            <th className="p-4 font-semibold uppercase text-[11px]">Sản phẩm & Date</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px] text-center">Gợi ý % Giảm giá</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px] text-center">% Giảm Giá mong muốn</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-40">Tồn quầy hiện tại</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-sand/50">
+                                        {discounts.map(d => (
+                                            <tr key={d.id} className="hover:bg-sand/10">
+                                                <td className="p-4">
+                                                    <p className="font-bold text-navy">{d.name}</p>
+                                                    <p className="text-xs font-medium text-red mt-1">Còn {d.daysLeft} ngày <span className="text-blue">| Gốc: {d.qtyOriginal}</span></p>
+                                                </td>
+                                                <td className="p-4 text-center font-bold text-slate/40">{d.suggestPct}%</td>
+                                                <td className="p-4 text-center">
+                                                    <input type="number" defaultValue={d.actualPct} className="w-16 text-center border border-blue/30 rounded-xl p-2 font-bold text-navy bg-sand/20 outline-none" />
+                                                </td>
+                                                <td className="p-4">
+                                                    <input type="number" value={d.qtyActual} onChange={(e) => setDiscounts(discounts.map(item => item.id === d.id ? {...item, qtyActual: e.target.value} : item))} className={`w-full text-center border-2 rounded-xl p-2.5 font-bold outline-none ${d.qtyActual === '' ? 'border-red/50 bg-red/10 text-darkred' : d.qtyActual == 0 ? 'border-sand bg-sand/50 text-navy/30' : 'border-green/50 bg-green/10 text-green'}`} placeholder="Nhập..." />
+                                                    {d.qtyActual == 0 && d.qtyActual !== '' && <p className="text-[10px] text-darkred mt-2 font-bold text-center">ĐÃ HẾT! TẮT POS NGAY</p>}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* KHU 2: ĐỔI TRẢ */}
+                        <div className="bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden">
+                            <div className="bg-navy p-5 text-sand flex justify-between items-center">
+                                <h2 className="font-semibold flex items-center"><i data-lucide="refresh-ccw" className="mr-3 text-gold"></i> QUẢN LÝ ĐỔI TRẢ</h2>
+                                <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{returns.length} Yêu cầu</span>
+                            </div>
+                            <div className="p-0 overflow-x-auto">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="bg-sand/30 text-slate">
+                                        <tr>
+                                            <th className="p-4 font-semibold uppercase text-[11px]">Sản phẩm</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px]">Nhà cung cấp</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px]">Trạng thái</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px]">Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-sand/50">
+                                        {returns.map(r => (
+                                            <tr key={r.id} className="hover:bg-sand/10">
+                                                <td className="p-4 font-bold text-navy">{r.name} <span className="text-gold ml-1">x{r.qty}</span></td>
+                                                <td className="p-4 text-slate font-medium">{r.npp}</td>
+                                                <td className="p-4">
+                                                    <select value={r.status} onChange={(e) => handleReturnStatus(r.id, e.target.value)} className={`text-xs font-bold rounded-xl px-4 py-2 outline-none border ${r.status === 'Chờ xử lý' ? 'bg-white border-blue text-slate' : r.status === 'Đã báo NPP' ? 'bg-blue/10 border-blue/30 text-navy' : 'bg-green/10 border-green/30 text-green'}`}>
+                                                        <option value="Chờ xử lý">Chờ xử lý</option><option value="Đã báo NPP">Đã báo NPP</option><option value="Đã nhận đổi trả">Đã nhận đổi trả</option>
+                                                    </select>
+                                                </td>
+                                                <td className="p-4">
+                                                    {r.status === 'Đã nhận đổi trả' ? <input type="text" placeholder="Ghi chú cấn trừ..." className="border border-blue/50 rounded-lg px-3 py-2 text-xs w-full outline-none" /> : <span className="text-blue text-xs italic">Chờ xử lý</span>}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* KHU 3: ĐẶT HÀNG */}
+                        <div className="bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden">
+                            <div className="bg-navy p-5 text-sand flex justify-between items-center">
+                                <h2 className="font-semibold flex items-center"><i data-lucide="shopping-cart" className="mr-3 text-gold"></i> DUYỆT ĐẶT HÀNG</h2>
+                            </div>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {Object.keys(groupedOrders).map(nppName => {
+                                    const maxWait = Math.max(...groupedOrders[nppName].map(o => o.hoursWait));
+                                    const alertStyle = getWaitAlert(maxWait);
+                                    return (
+                                        <div key={nppName} className={`border rounded-2xl overflow-hidden shadow-sm ${alertStyle.border}`}>
+                                            <div className={`p-4 border-b flex justify-between items-center ${alertStyle.bg} ${alertStyle.border}`}>
+                                                <div>
+                                                    <h3 className="font-bold text-navy">{nppName}</h3>
+                                                    <span className={`text-xs font-bold mt-1 block ${alertStyle.text}`}>{alertStyle.icon} (Chờ: {maxWait}h)</span>
+                                                </div>
+                                                <button onClick={() => handleCloseOrders(nppName)} className="bg-navy hover:bg-slate text-sand text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center">
+                                                    <i data-lucide="check-circle-2" className="w-4 h-4 mr-1 text-gold"></i> Đã chốt
+                                                </button>
+                                            </div>
+                                            <div className="p-4 bg-white">
+                                                <ul className="space-y-3">
+                                                    {groupedOrders[nppName].map(item => (
+                                                        <li key={item.id} className="flex justify-between items-center text-sm border-b border-sand/50 pb-3 last:border-0 last:pb-0">
+                                                            <span className="font-semibold text-slate">{item.name}</span>
+                                                            <span className="font-bold text-navy bg-sand/50 px-3 py-1 rounded-lg">x{item.qty}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {Object.keys(groupedOrders).length === 0 && <div className="col-span-full text-center text-blue py-8 font-medium">Không có đơn hàng nào chờ duyệt.</div>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('candate');
+
+            // Cập nhật lại thư viện Icon mỗi khi React Render lại DOM
+            useEffect(() => { 
+                if(window.lucide) { window.lucide.createIcons(); }
+            });
+
+            return (
+                <div className="bg-sand min-h-screen font-sans pb-20">
+                    <div className="w-full">
+                        {activeTab === 'candate' && <ViewCanDate />}
+                        {activeTab === 'dathang' && <ViewDatHang />}
+                        {activeTab === 'dashboard' && <ViewDashboard />}
+                    </div>
+
+                    <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
+                        <div className="bg-white/90 backdrop-blur-md shadow-lg rounded-3xl flex justify-around p-2 w-full max-w-md pointer-events-auto">
+                            <button onClick={() => setActiveTab('candate')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl ${activeTab === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
+                                <i data-lucide="clock" className="h-5 w-5"></i><span className="text-[10px] font-bold tracking-wider mt-1">CẬN DATE</span>
+                            </button>
+                            <button onClick={() => setActiveTab('dathang')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl ${activeTab === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
+                                <i data-lucide="shopping-cart" className="h-5 w-5"></i><span className="text-[10px] font-bold tracking-wider mt-1">ĐẶT HÀNG</span>
+                            </button>
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl ${activeTab === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
+                                <i data-lucide="layout-dashboard" className="h-5 w-5"></i><span className="text-[10px] font-bold tracking-wider mt-1">DASHBOARD</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
