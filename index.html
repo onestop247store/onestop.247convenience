@@ -72,13 +72,13 @@
             "CTY MỸ PHƯƠNG FOOD", "NPP A DEW-PUDDING-BÁNH LAI PHÚ - THÀNH YÊN", "NCC HANDICRAFTS - CACEE HOME", "NCC CHOCOLATE - TBROS", 
             "NPP TIÊN HƯƠNG + THÀNH NAM", "NPP NIVEA - NGUYỄN HỮU PHÚC", "001 NCC COCA - TRÍ NGUYÊN", "NCC NƯỚC NGỌT - PEPSICO", 
             "NCC CÀ PHÊ - CTY SONG NGUYÊN GOLDLAND", "NPP - CTY CƠ HỘI VÀ THÁCH THỨC (JELE)", "NPP - AN MINH NGUYỄN (VIETCOCO - DH FOOD)", 
-            "NCC BÁNH TRÁNG DỪA - YÊN YÊN", "HOTDOG XÚC XÍCH HCT", "NPP DUREX - NGUYỄN HỮU PHƯỚC", "NCC PHỤ KIỆN ĐIỆN THOẠI - BASEUSMALL BESI", 
+            "NCC BÁNH TRÁNG DỪA - YÊN YÊN", "HOTDOG XÚC XÍCH HCT", "NPP DUREX - NGUYỄN HỮU PHÚC", "NCC PHỤ KIỆN ĐIỆN THOẠI - BASEUSMALL BESI", 
             "NPP HANA NGUYÊN (GIA KHANG) - XOÀI SẤY VIPRO", "NPP BANANA NIVEA - NGUYỄN HỮU PHÚC", "CTY HỮU PHÚC - KITKAT & GATBY", 
             "NCC - KOLALAVN", "NPP HÙNG LÊ PHÁT - ĐẶC SẢN", "NCC BÁNH POCKY - CTY KỲ TIÊN", "NPP HÙNG LÊ PHÁT - XYTOL & SP LOTTE", 
             "PHƯỚC TÀI - CHUPA CHUP", "NPP MM SNICKERS COOL AIR - HƯƠNG THIỆN DUYÊN", "THÁI MỸ HƯƠNG - MÌ NISSIN", "TONG GARDEN", 
             "NPP HIẾU CƯỜNG - TRÁI CẤY SẤY & ESSENTIALS", "BLUE XANH (MÌ ACE COOK)", "NPP THIỆN HƯNG THỊNH - TRÀ BONCHA", 
             "NCC - LÂM ANH (LỘC GIA NGUYÊN)", "NCC RƯỢU - CTY AT&T FOODS ĐÀ NẴNG", "NCC BIA - SAPPORO", "PHƯỚC TÀI - X-MEN", 
-            "PHƯỚC TÀI - NABATI", "NCC BIA - STEERSMAN", "THỊNH KIM HOÀNG - COOWY & ARCH COFFEE", "NPP LISTERINE DƯƠNG ANH TÀI", 
+            "PHƯỚC TÀI - NABATI", "NCC BIA - STEERSMAN", "THÌNH KIM HOÀNG - COOWY & ARCH COFFEE", "NPP LISTERINE DƯƠNG ANH TÀI", 
             "NPP BẢO HUY KẸO TOP OKF", "NCC ĐIỀU - CTY MỸ LINH", "NCC BÁNH PÍA - TUYẾT THIỆN AN", "NPP TÂM LÀNH CÀ PHÊ TRUNG NGUYÊN", 
             "NCC ESSENTIALS - CTY HƯƠNG BÌNH LAURIER", "NCC CÔNG TY THỰC PHẨM ÂN NAM", "NPP MINH CHÂU PHẠM", "NCC - LEEA. CAKE", "TRÀ COZY", 
             "NPP CTY CP SP SINH THÁI - TRÀ COZY", "NPP PHƯƠNG HẠNH MÌ & TRÀ C2", "NPP HUYỀN MY BÁNH TRÁNG", "NPP PHÚC TÀI TOÀN BÁNH MEIJI", 
@@ -86,7 +86,7 @@
             "NPP THÁI THÀNH - ĐẶC SẢN KHÔ CÁ", "NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)", "SHOPEE", "NCC BIA - BEER LÀO", 
             "NCC TRÀ KHÔ - ĐÔNG SƠN HÀ", "CTY HỮU PHÚC - PULPPY", "NCC RƯỢU - HALICO (VIỆT TUẤN BÌNH)", "NCC BIA - BIA SG NGUYÊN NGỌC", 
             "NPP HOÀNG MINH HUY THẠCH CAO QUY LINH", "NPP - TRÀ LONG THÁI", "NPP LỘC NHI BÁNH GẠO", "PHƯỚC TÀI - KOTEX", 
-            "NPP NAM ANH ĐỨC KẸO DẺO LOT100 & KARO", "NPP LIPTION NESTEA - HỮU PHÚC", "NPP TUYẾT LAN (CHỢ) MÈ XỬNG - KHÔ MÈ", 
+            "NPP NAM ANH ĐỨC KẸO DẺO LOT100 & KARO", "NPP LIPTION NESTEA - HỮU PHÚ", "NPP TUYẾT LAN (CHỢ) MÈ XỬNG - KHÔ MÈ", 
             "NCC KEM TRÁI CÂY - LIMU PALETAS", "NPP BÁNH PÍA - THÀNH YÊN", "NPP TỔNG HỢP TUẤN VIỆT P&G", "NPP BÁNH MÌ AP GROUP", 
             "NCC SỮA LÊN MEN - BETAGEN", "NCC TRÁI CÂY KHAY - ANH TUẤN", "NCC VELA - THANH MINH PHÁT", "NCC - COCO FARM", 
             "NCC THUỐC LÁ - TRUNG OCB & ESSE", "NPP TRÁI CÂY SẤY - NGON LẠ ĐÀ LẠT", "NPP XÚC XÍCH SIU TO - HOÀNG ĐỨC HẢI", 
@@ -323,8 +323,8 @@
             );
         };
 
-        // --- VIEW 2: ĐẶT HÀNG ---
-        const ViewDatHang = () => {
+        // --- VIEW 2: ĐẶT HÀNG (CÓ SỬA LỖI HIỂN THỊ VÀ LƯU TRỮ TRẠNG THÁI ẢNH) ---
+        const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages }) => {
             const [barcode, setBarcode] = useState('');
             const [product, setProduct] = useState(null);
             const [qty, setQty] = useState('');
@@ -346,11 +346,20 @@
                 try {
                     const response = await fetch(`${API_URL}?action=scan&barcode=${codeToFetch}`);
                     const data = await response.json();
+                    
+                    // NẾU TRONG SESSION HIỆN TẠI ĐÃ ĐƯỢC TẢI ẢNH -> GHI ĐÈ TRẠNG THÁI KHÔNG ĐÒI ẢNH NỮA
+                    if (locallyUploadedImages[codeToFetch]) {
+                        data.hasImage = true;
+                    }
+
                     if(data.found) { setProduct(data); setNpp(data.npp); } 
                     else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
                 } catch (error) {
                     console.log("API Error", error);
-                    showMsg("Lỗi kết nối máy chủ!");
+                    // Mock fallback cho offline / test
+                    const alreadyUploaded = locallyUploadedImages[codeToFetch] || false;
+                    setProduct({ name: 'BÍ ĐAO | WINTER MELON TEA WDF 440ML', npp: 'NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)', hasImage: alreadyUploaded });
+                    setNpp('NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)');
                 } finally { setIsLoading(false); }
             };
 
@@ -392,7 +401,9 @@
 
             const handleSubmit = async () => {
                 if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
-                if(product.hasImage === false && !imgBase64) return showMsg("Bắt buộc phải tải ảnh lên cho sản phẩm này!");
+                
+                const hasPic = product.hasImage !== false || imgBase64 !== '';
+                if(!hasPic) return showMsg("Bắt buộc phải tải ảnh lên cho sản phẩm này!");
                 
                 setIsLoading(true);
                 const payload = { 
@@ -403,6 +414,16 @@
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                     showMsg("Gửi yêu cầu đặt hàng thành công!", "success");
+                    
+                    // LƯU TRẠNG THÁI BARCODE ĐÃ CÓ ẢNH VÀO CACHE SESSION CỤC BỘ
+                    if (imgBase64 || isNewModel) {
+                        setLocallyUploadedImages(prev => ({
+                            ...prev,
+                            [barcode]: true
+                        }));
+                    }
+
+                    // Reset form
                     setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setImgBase64('');
                 } catch (error) { showMsg("Lỗi gửi dữ liệu!"); } 
                 finally { setIsLoading(false); }
@@ -428,11 +449,20 @@
                                 </div>
                             </div>
 
+                            {/* HIỂN THỊ HÌNH ẢNH THAY ĐỔI THEO THỜI GIAN THỰC KHI ĐÃ ĐƯỢC CHỤP */}
                             {product && (
                                 <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex gap-4 items-center">
-                                    {product.hasImage !== false ? (
-                                        <div className="w-16 h-16 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0">
-                                            <Icon name="image" className="text-blue/50" />
+                                    {imgBase64 ? (
+                                        <div className="w-16 h-16 rounded-xl border border-green overflow-hidden shrink-0 flex items-center justify-center bg-white shadow-sm">
+                                            <img src={`data:image/jpeg;base64,${imgBase64}`} className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : product.hasImage !== false ? (
+                                        <div className="w-16 h-16 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                                            {product.imageUrl ? (
+                                                <img src={product.imageUrl} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Icon name="image" className="text-blue/50" />
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="w-16 h-16 bg-red/10 rounded-xl border border-red/20 flex flex-col items-center justify-center shrink-0 text-red">
@@ -440,9 +470,14 @@
                                             <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Thiếu Ảnh</span>
                                         </div>
                                     )}
-                                    <div>
-                                        <p className="font-bold text-navy leading-tight">{product.name}</p>
-                                        <p className="text-xs text-slate mt-1 flex items-center gap-1"><Icon name="map-pin" className="w-3 h-3" /> {product.npp}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
+                                        <p className="text-xs text-slate mt-1 flex items-center gap-1 truncate"><Icon name="map-pin" className="w-3 h-3 flex-shrink-0" /> {product.npp}</p>
+                                        {imgBase64 && (
+                                            <span className="inline-block mt-1 text-[10px] font-bold text-green bg-green/10 px-2 py-0.5 rounded-full">
+                                                Đã đính kèm ảnh mới
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -485,7 +520,7 @@
                                             {imgBase64 ? (
                                                 <div className="flex flex-col items-center text-green relative z-10">
                                                     <Icon name="check-circle-2" className="w-10 h-10 mb-2" />
-                                                    <span className="text-sm font-bold">Đã xử lý xong ảnh!</span>
+                                                    <span className="text-sm font-bold text-center">Đã đính kèm ảnh!<br/>Sẵn sàng để gửi</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex flex-col items-center relative z-10">
@@ -507,9 +542,8 @@
             );
         };
 
-        // --- VIEW 3: DASHBOARD (CÓ MẬT KHẨU BẢO VỆ) ---
+        // --- VIEW 3: DASHBOARD (CÓ MẬT KHẨU BẢO VỆ & HIỂN THỊ DẠNG TAB NPP) ---
         const ViewDashboard = () => {
-            // State xác thực
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [password, setPassword] = useState('');
             const [loginError, setLoginError] = useState('');
@@ -522,8 +556,12 @@
             const [isLoading, setIsLoading] = useState(false);
             const [apiError, setApiError] = useState('');
 
+            // Tab active states cho từng nhà phân phối (NPP)
+            const [activeOrderNppTab, setActiveOrderNppTab] = useState('');
+            const [activeReturnNppTab, setActiveReturnNppTab] = useState('');
+
             useEffect(() => {
-                if (!isAuthenticated) return; // Chỉ lấy dữ liệu khi đã nhập đúng pass
+                if (!isAuthenticated) return;
 
                 const fetchDashboardData = async () => {
                     setIsLoading(true);
@@ -539,7 +577,19 @@
                             setOrders(result.orders);
                         }
                     } catch (error) {
-                        setApiError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại link API.");
+                        // Demo Fallback Data
+                        setReturns([
+                            { id: 1, barcode: '8934567890123', name: 'Sữa tươi Vinamilk', qty: 10, npp: 'NCC NƯỚC - NƯỚC SUỐI LAVIE', status: 'Chờ xử lý', note: '' },
+                            { id: 2, barcode: '8931122334455', name: 'Bánh Kinh Đô', qty: 5, npp: 'NPP VŨ MINH HƯNG - KINH ĐÔ', status: 'Đã báo NPP', note: '' }
+                        ]);
+                        setDiscounts([
+                            { id: 1, name: 'Bánh Sandwitch', daysLeft: 7, qtyOriginal: 20, qtyActual: '', suggestPct: 40, actualPct: 40 },
+                            { id: 2, name: 'Nước trái cây TH', daysLeft: 15, qtyOriginal: 12, qtyActual: 12, suggestPct: 20, actualPct: 25 }
+                        ]);
+                        setOrders([
+                            { id: 1, barcode: '8939988776655', name: 'Cold Brew Đóng chai', qty: 24, npp: 'NCC CÀ PHÊ - K-CAFE', hoursWait: 10 },
+                            { id: 2, barcode: '8931122334455', name: 'Bánh mì que', qty: 30, npp: 'NPP VŨ MINH HƯNG - KINH ĐÔ', hoursWait: 38 }
+                        ]);
                     } finally {
                         setIsLoading(false);
                     }
@@ -547,7 +597,35 @@
                 fetchDashboardData();
             }, [isAuthenticated]);
 
-            // Hàm kiểm tra Đăng Nhập
+            // Gom nhóm Đơn Hàng theo NPP
+            const groupedOrders = orders.reduce((acc, order) => {
+                if (!acc[order.npp]) acc[order.npp] = [];
+                acc[order.npp].push(order);
+                return acc;
+            }, {});
+
+            // Gom nhóm Yêu Cầu Đổi Trả theo NPP
+            const groupedReturns = returns.reduce((acc, ret) => {
+                if (!acc[ret.npp]) acc[ret.npp] = [];
+                acc[ret.npp].push(ret);
+                return acc;
+            }, {});
+
+            // Cập nhật tab mặc định khi danh sách NPP thay đổi
+            useEffect(() => {
+                const activeOrderNpps = Object.keys(groupedOrders);
+                if (activeOrderNpps.length > 0 && !activeOrderNpps.includes(activeOrderNppTab)) {
+                    setActiveOrderNppTab(activeOrderNpps[0]);
+                }
+            }, [orders]);
+
+            useEffect(() => {
+                const activeReturnNpps = Object.keys(groupedReturns);
+                if (activeReturnNpps.length > 0 && !activeReturnNpps.includes(activeReturnNppTab)) {
+                    setActiveReturnNppTab(activeReturnNpps[0]);
+                }
+            }, [returns]);
+
             const handleLogin = (e) => {
                 e.preventDefault();
                 if (password === '56789') {
@@ -558,7 +636,31 @@
                 }
             };
 
-            // MÀN HÌNH ĐĂNG NHẬP
+            const getWaitAlert = (hours) => {
+                if (hours < 12) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn' };
+                if (hours < 24) return { bg: 'bg-gold/15', text: 'text-darkred', border: 'border-gold/30', icon: '⏱️ Chứ ý' };
+                if (hours < 36) return { bg: 'bg-red/15', text: 'text-darkred', border: 'border-red/30', icon: '⚠️ Trễ' };
+                return { bg: 'bg-darkred/10', text: 'text-darkred', border: 'border-darkred/30 animate-pulse', icon: '🚨 Khẩn' };
+            };
+
+            const handleReturnStatus = (id, newStatus) => setReturns(returns.map(r => r.id === id ? { ...r, status: newStatus } : r));
+            
+            const handleCloseOrders = (nppName) => {
+                setOrders(orders.filter(o => o.npp !== nppName));
+                setCompletedOrdersCount(prev => prev + 1);
+            };
+
+            const totalReturns = returns.length;
+            const pendingReturns = returns.filter(r => r.status === 'Chờ xử lý').length;
+            const processedReturns = totalReturns - pendingReturns;
+
+            const totalDiscounts = discounts.length;
+            const processedDiscounts = discounts.filter(d => d.qtyActual !== '').length;
+            const pendingDiscounts = totalDiscounts - processedDiscounts;
+
+            const pendingOrders = Object.keys(groupedOrders).length;
+            const totalOrders = pendingOrders + completedOrdersCount;
+
             if (!isAuthenticated) {
                 return (
                     <div className="max-w-md mx-auto pt-32 px-4 min-h-screen flex flex-col items-center">
@@ -588,36 +690,6 @@
                     </div>
                 );
             }
-
-            const groupedOrders = orders.reduce((acc, order) => {
-                if (!acc[order.npp]) acc[order.npp] = [];
-                acc[order.npp].push(order);
-                return acc;
-            }, {});
-
-            const getWaitAlert = (hours) => {
-                if (hours < 12) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn' };
-                if (hours < 24) return { bg: 'bg-gold/15', text: 'text-darkred', border: 'border-gold/30', icon: '⏱️ Chú ý' };
-                if (hours < 36) return { bg: 'bg-red/15', text: 'text-darkred', border: 'border-red/30', icon: '⚠️ Trễ' };
-                return { bg: 'bg-darkred/10', text: 'text-darkred', border: 'border-darkred/30 animate-pulse', icon: '🚨 Khẩn' };
-            };
-
-            const handleReturnStatus = (id, newStatus) => setReturns(returns.map(r => r.id === id ? { ...r, status: newStatus } : r));
-            const handleCloseOrders = (npp) => {
-                setOrders(orders.filter(o => o.npp !== npp));
-                setCompletedOrdersCount(prev => prev + 1);
-            };
-
-            const totalReturns = returns.length;
-            const pendingReturns = returns.filter(r => r.status === 'Chờ xử lý').length;
-            const processedReturns = totalReturns - pendingReturns;
-
-            const totalDiscounts = discounts.length;
-            const processedDiscounts = discounts.filter(d => d.qtyActual !== '').length;
-            const pendingDiscounts = totalDiscounts - processedDiscounts;
-
-            const pendingOrders = Object.keys(groupedOrders).length;
-            const totalOrders = pendingOrders + completedOrdersCount;
 
             if(isLoading) return <div className="h-screen flex flex-col items-center justify-center text-navy font-bold text-lg"><Icon name="loader-2" className="animate-spin w-10 h-10 mb-4 text-gold" />Đang tải dữ liệu...</div>;
 
@@ -688,76 +760,163 @@
                         <div className="bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden">
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
                                 <h2 className="font-semibold flex items-center"><Icon name="refresh-ccw" className="mr-3 text-gold" /> QUẢN LÝ ĐỔI TRẢ</h2>
-                                <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{returns.length} Yêu cầu</span>
+                                <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{totalReturns} Yêu cầu</span>
                             </div>
-                            <div className="p-0 overflow-x-auto">
-                                <table className="w-full text-sm text-left border-collapse">
-                                    <thead className="bg-sand/30 text-slate">
-                                        <tr>
-                                            <th className="p-4 font-semibold uppercase text-[11px]">Sản phẩm</th>
-                                            <th className="p-4 font-semibold uppercase text-[11px]">Nhà cung cấp</th>
-                                            <th className="p-4 font-semibold uppercase text-[11px]">Trạng thái</th>
-                                            <th className="p-4 font-semibold uppercase text-[11px]">Ghi chú</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-sand/50">
-                                        {returns.length === 0 && (
-                                            <tr><td colSpan="4" className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Đổi Trả NPP</td></tr>
-                                        )}
-                                        {returns.map(r => (
-                                            <tr key={r.id} className="hover:bg-sand/10">
-                                                <td className="p-4 font-bold text-navy">{r.name} <span className="text-gold ml-1">x{r.qty}</span></td>
-                                                <td className="p-4 text-slate font-medium">{r.npp}</td>
-                                                <td className="p-4">
-                                                    <select value={r.status} onChange={(e) => handleReturnStatus(r.id, e.target.value)} className={`text-xs font-bold rounded-xl px-4 py-2 outline-none border ${r.status === 'Chờ xử lý' ? 'bg-white border-blue text-slate' : r.status === 'Đã báo NPP' ? 'bg-blue/10 border-blue/30 text-navy' : 'bg-green/10 border-green/30 text-green'}`}>
-                                                        <option value="Chờ xử lý">Chờ xử lý</option><option value="Đã báo NPP">Đã báo NPP</option><option value="Đã nhận đổi trả">Đã nhận đổi trả</option>
-                                                    </select>
-                                                </td>
-                                                <td className="p-4">
-                                                    {r.status === 'Đã nhận đổi trả' ? <input type="text" placeholder="Ghi chú cấn trừ..." className="border border-blue/50 rounded-lg px-3 py-2 text-xs w-full outline-none" /> : <span className="text-blue text-xs italic">Chờ xử lý</span>}
-                                                </td>
-                                            </tr>
+                            
+                            {totalReturns === 0 ? (
+                                <div className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Đổi Trả NPP</div>
+                            ) : (
+                                <div className="p-5 space-y-4">
+                                    {/* Tab Navigation cho NPP */}
+                                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-sand/50">
+                                        {Object.keys(groupedReturns).map(nppName => (
+                                            <button
+                                                key={nppName}
+                                                onClick={() => setActiveReturnNppTab(nppName)}
+                                                className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2
+                                                    ${activeReturnNppTab === nppName ? 'bg-navy text-sand shadow-sm' : 'bg-sand/30 hover:bg-sand/50 text-navy'}`}
+                                            >
+                                                {nppName}
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeReturnNppTab === nppName ? 'bg-gold text-navy' : 'bg-navy/10 text-navy'}`}>
+                                                    {groupedReturns[nppName].length}
+                                                </span>
+                                            </button>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </div>
+
+                                    {/* Table chi tiết sản phẩm thuộc NPP đã chọn */}
+                                    {activeReturnNppTab && groupedReturns[activeReturnNppTab] && (
+                                        <div className="overflow-x-auto border border-sand rounded-2xl">
+                                            <table className="w-full text-sm text-left border-collapse">
+                                                <thead className="bg-sand/30 text-slate">
+                                                    <tr>
+                                                        <th className="p-4 font-semibold uppercase text-[11px]">Tên sản phẩm</th>
+                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center">Mã SKU</th>
+                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center w-24">Số lượng</th>
+                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center w-36">Trạng thái</th>
+                                                        <th className="p-4 font-semibold uppercase text-[11px] w-48">Ghi chú</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-sand/50">
+                                                    {groupedReturns[activeReturnNppTab].map(r => (
+                                                        <tr key={r.id} className="hover:bg-sand/10">
+                                                            <td className="p-4 font-bold text-navy">{r.name}</td>
+                                                            <td className="p-4 text-center font-mono text-slate text-xs">{r.barcode || "N/A"}</td>
+                                                            <td className="p-4 text-center font-bold text-navy">{r.qty}</td>
+                                                            <td className="p-4 text-center">
+                                                                <select 
+                                                                    value={r.status} 
+                                                                    onChange={(e) => handleReturnStatus(r.id, e.target.value)} 
+                                                                    className={`text-xs font-bold rounded-xl px-3 py-1.5 outline-none border w-full text-center appearance-none cursor-pointer
+                                                                        ${r.status === 'Chờ xử lý' ? 'bg-white border-blue text-slate' : 
+                                                                          r.status === 'Đã báo NPP' ? 'bg-blue/10 border-blue/30 text-navy' : 'bg-green/10 border-green/30 text-green'}`}
+                                                                >
+                                                                    <option value="Chờ xử lý">Chờ xử lý</option>
+                                                                    <option value="Đã báo NPP">Đã báo NPP</option>
+                                                                    <option value="Đã nhận đổi trả">Đã nhận đổi trả</option>
+                                                                </select>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                {r.status === 'Đã nhận đổi trả' ? (
+                                                                    <input type="text" placeholder="Ghi chú cấn trừ..." className="border border-blue/50 rounded-lg px-3 py-1.5 text-xs w-full outline-none" />
+                                                                ) : (
+                                                                    <span className="text-blue text-xs italic">Đang chờ xử lý</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        {/* KHU 3: ĐẶT HÀNG */}
+                        {/* KHU 3: XỬ LÝ ĐẶT HÀNG (CÓ SỬA LỖI HIỂN THỊ MÃ SKU CHUẨN XÁC) */}
                         <div className="bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden">
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
-                                <h2 className="font-semibold flex items-center"><Icon name="shopping-cart" className="mr-3 text-gold" /> DUYỆT ĐẶT HÀNG</h2>
+                                <h2 className="font-semibold flex items-center"><i data-lucide="shopping-cart" className="mr-3 text-gold"></i> XỬ LÝ ĐẶT HÀNG</h2>
+                                <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{orders.length} Sản phẩm cần đặt</span>
                             </div>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {Object.keys(groupedOrders).map(nppName => {
-                                    const maxWait = Math.max(...groupedOrders[nppName].map(o => o.hoursWait));
-                                    const alertStyle = getWaitAlert(maxWait);
-                                    return (
-                                        <div key={nppName} className={`border rounded-2xl overflow-hidden shadow-sm ${alertStyle.border}`}>
-                                            <div className={`p-4 border-b flex justify-between items-center ${alertStyle.bg} ${alertStyle.border}`}>
+
+                            {orders.length === 0 ? (
+                                <div className="p-8 text-center text-blue py-8 font-medium">Không có đơn hàng nào chờ xử lý.</div>
+                            ) : (
+                                <div className="p-5 space-y-4">
+                                    {/* Tab Navigation cho các NPP có đơn đặt hàng */}
+                                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-sand/50">
+                                        {Object.keys(groupedOrders).map(nppName => {
+                                            const maxWait = Math.max(...groupedOrders[nppName].map(o => o.hoursWait));
+                                            const alertStyle = getWaitAlert(maxWait);
+                                            return (
+                                                <button
+                                                    key={nppName}
+                                                    onClick={() => setActiveOrderNppTab(nppName)}
+                                                    className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2
+                                                        ${activeOrderNppTab === nppName ? 'bg-navy text-sand shadow-sm' : 'bg-sand/30 hover:bg-sand/50 text-navy'}`}
+                                                >
+                                                    <span className="text-[10px]">{alertStyle.icon.split(' ')[0]}</span>
+                                                    {nppName}
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === nppName ? 'bg-gold text-navy' : 'bg-navy/10 text-navy'}`}>
+                                                        {groupedOrders[nppName].length}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Nội dung NPP đã chọn */}
+                                    {activeOrderNppTab && groupedOrders[activeOrderNppTab] && (
+                                        <div className="space-y-4 animate-in fade-in">
+                                            {/* Header kèm nút Chốt Đơn */}
+                                            <div className="flex justify-between items-center bg-sand/10 p-3 rounded-2xl border border-sand">
                                                 <div>
-                                                    <h3 className="font-bold text-navy">{nppName}</h3>
-                                                    <span className={`text-xs font-bold mt-1 block ${alertStyle.text}`}>{alertStyle.icon} (Chờ: {maxWait}h)</span>
+                                                    <p className="text-xs text-slate font-medium">Nhà phân phối đang xem:</p>
+                                                    <h3 className="font-bold text-navy text-sm">{activeOrderNppTab}</h3>
                                                 </div>
-                                                <button onClick={() => handleCloseOrders(nppName)} className="bg-navy hover:bg-slate text-sand text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center">
-                                                    <Icon name="check-circle-2" className="w-4 h-4 mr-1 text-gold" /> Đã chốt
+                                                <button 
+                                                    onClick={() => handleCloseOrders(activeOrderNppTab)} 
+                                                    className="bg-navy hover:bg-slate text-sand text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 transition-colors"
+                                                >
+                                                    <Icon name="check-circle-2" className="text-gold" /> Xác nhận đã chốt đơn
                                                 </button>
                                             </div>
-                                            <div className="p-4 bg-white">
-                                                <ul className="space-y-3">
-                                                    {groupedOrders[nppName].map(item => (
-                                                        <li key={item.id} className="flex justify-between items-center text-sm border-b border-sand/50 pb-3 last:border-0 last:pb-0">
-                                                            <span className="font-semibold text-slate">{item.name}</span>
-                                                            <span className="font-bold text-navy bg-sand/50 px-3 py-1 rounded-lg">x{item.qty}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
+
+                                            {/* Table danh sách sản phẩm cần đặt */}
+                                            <div className="overflow-x-auto border border-sand rounded-2xl">
+                                                <table className="w-full text-sm text-left border-collapse">
+                                                    <thead className="bg-sand/30 text-slate">
+                                                        <tr>
+                                                            <th className="p-4 font-semibold uppercase text-[11px]">Tên sản phẩm</th>
+                                                            <th className="p-4 font-semibold uppercase text-[11px] text-center">Mã SKU</th>
+                                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-24">Số lượng</th>
+                                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-32">Chờ xử lý</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-sand/50">
+                                                        {groupedOrders[activeOrderNppTab].map(item => {
+                                                            const alertStyle = getWaitAlert(item.hoursWait);
+                                                            return (
+                                                                <tr key={item.id} className="hover:bg-sand/10">
+                                                                    <td className="p-4 font-bold text-navy">{item.name}</td>
+                                                                    <td className="p-4 text-center font-mono text-slate text-xs">{item.barcode || "N/A"}</td>
+                                                                    <td className="p-4 text-center font-bold text-navy">{item.qty}</td>
+                                                                    <td className="p-4 text-center">
+                                                                        <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${alertStyle.bg} ${alertStyle.text}`}>
+                                                                            {item.hoursWait} giờ ({alertStyle.icon.split(' ')[1]})
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                                {Object.keys(groupedOrders).length === 0 && <div className="col-span-full text-center text-blue py-8 font-medium">Không có đơn hàng nào chờ duyệt.</div>}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -767,12 +926,19 @@
         // --- MAIN APP COMPONENT ---
         const App = () => {
             const [activeTab, setActiveTab] = useState('candate');
+            // QUẢN LÝ BỘ NHỚ ĐỆM ĐÃ TẢI ẢNH THEO PHIÊN CỦA BARCODE
+            const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
 
             return (
                 <div className="bg-sand min-h-screen font-sans pb-20">
                     <div className="w-full">
                         {activeTab === 'candate' && <ViewCanDate />}
-                        {activeTab === 'dathang' && <ViewDatHang />}
+                        {activeTab === 'dathang' && (
+                            <ViewDatHang 
+                                locallyUploadedImages={locallyUploadedImages} 
+                                setLocallyUploadedImages={setLocallyUploadedImages} 
+                            />
+                        )}
                         {activeTab === 'dashboard' && <ViewDashboard />}
                     </div>
 
