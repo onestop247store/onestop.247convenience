@@ -37,7 +37,6 @@
     <style>
         body { background-color: #E4DBD1; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent;}
         .hide-scrollbar::-webkit-scrollbar { display: none; }
-        /* Toast Animation */
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; display: none; } }
         .toast-message { animation: fadeOut 3s forwards; }
     </style>
@@ -47,51 +46,139 @@
 
     <script type="text/babel">
         // ==========================================
-        // CẤU HÌNH API Ở ĐÂY 
-        // Thay link này bằng Web App URL từ Google Apps Script của bạn
+        // CẤU HÌNH API
         // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec"; 
         
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        const MOCK_NPP_LIST = ['NPP Vinamilk HCM', 'Kho Tổng ONE STOP', 'NPP Đồ uống Local', 'NPP Bánh ngọt ĐN', 'NPP Masan'];
+        // DANH SÁCH NHÀ CUNG CẤP ONE STOP (CẬP NHẬT 15/06/2026)
+        const MOCK_NPP_LIST = [
+            "NCC NƯỚC - NƯỚC SUỐI LAVIE", "NCC BIA - LINH HÙNG", "NCC - HTX NÔNG SẢN SẠCH ĐÔ 37", "NCC THUỐC LÁ 555 - VÂN HẬU (KHOA)", 
+            "NCC BIA - BIA HÀ NỘI", "NCC THUỐC LÁ - CTY ĐẠT XANH MARLBORO", "NCC RƯỢU - CTY RƯỢU THẾ GIỚI ĐÀ NẴNG", 
+            "NCC THUỐC LÁ - NHỨT CAMEL MEVIUS (CTY BÌNH HÀ DUY)", "NCC CÀ PHÊ - K-CAFE", "NCC NƯỚC - CTY TM VKD VIKODA", 
+            "NCC - NONGSHIM VIET NAM", "THÁI MỸ HƯƠNG - POCARI", "NCC - CTY HOÀNG TRẦN THT", "PHƯỚC TÀI - VIFON", 
+            "CTY TMDV XUÂN PHÁT (ĐẬU TÂN TÂN)", "NCC BIA - BIA IBIERO", "NCC CÀ PHÊ - MR.VIỆT (CTY AWESOME PRODUCTS)", 
+            "NCC - KIÊN GIA THINH", "NCC KHOAI TÂY LAYS - NGUYỄN PHẠM", "NCC XOÀI DỪA - DR.FOODS ĐÀ NẴNG", "NCC CHOCOLATE - MAROU", 
+            "NCC LAYS PEPSICO - TRẦN ĐỨC HIẾU", "NPP VŨ MINH HƯNG - KINH ĐÔ", "NPP BẢO AN", "NCC - HOÀNG TRẦN THT", 
+            "NCC BIA - MIXTAPE", "NCC - BÁNH ÉP HUẾ", "NCC - CÔNG TY CỔ PHẦN IPP GROUP", "NCC CHILL KOMBUCHA - THIÊN LONG NHIÊN", 
+            "CTY MỸ PHƯƠNG FOOD", "NPP A DEW-PUDDING-BÁNH LAI PHÚ - THÀNH YÊN", "NCC HANDICRAFTS - CACEE HOME", "NCC CHOCOLATE - TBROS", 
+            "NPP TIÊN HƯƠNG + THÀNH NAM", "NPP NIVEA - NGUYỄN HỮU PHÚC", "001 NCC COCA - TRÍ NGUYÊN", "NCC NƯỚC NGỌT - PEPSICO", 
+            "NCC CÀ PHÊ - CTY SONG NGUYÊN GOLDLAND", "NPP - CTY CƠ HỘI VÀ THÁCH THỨC (JELE)", "NPP - AN MINH NGUYỄN (VIETCOCO - DH FOOD)", 
+            "NCC BÁNH TRÁNG DỪA - YÊN YÊN", "HOTDOG XÚC XÍCH HCT", "NPP DUREX - NGUYỄN HỮU PHƯỚC", "NCC PHỤ KIỆN ĐIỆN THOẠI - BASEUSMALL BESI", 
+            "NPP HANA NGUYÊN (GIA KHANG) - XOÀI SẤY VIPRO", "NPP BANANA NIVEA - NGUYỄN HỮU PHÚC", "CTY HỮU PHÚC - KITKAT & GATBY", 
+            "NCC - KOLALAVN", "NPP HÙNG LÊ PHÁT - ĐẶC SẢN", "NCC BÁNH POCKY - CTY KỲ TIÊN", "NPP HÙNG LÊ PHÁT - XYTOL & SP LOTTE", 
+            "PHƯỚC TÀI - CHUPA CHUP", "NPP MM SNICKERS COOL AIR - HƯƠNG THIỆN DUYÊN", "THÁI MỸ HƯƠNG - MÌ NISSIN", "TONG GARDEN", 
+            "NPP HIẾU CƯỜNG - TRÁI CẤY SẤY & ESSENTIALS", "BLUE XANH (MÌ ACE COOK)", "NPP THIỆN HƯNG THỊNH - TRÀ BONCHA", 
+            "NCC - LÂM ANH (LỘC GIA NGUYÊN)", "NCC RƯỢU - CTY AT&T FOODS ĐÀ NẴNG", "NCC BIA - SAPPORO", "PHƯỚC TÀI - X-MEN", 
+            "PHƯỚC TÀI - NABATI", "NCC BIA - STEERSMAN", "THỊNH KIM HOÀNG - COOWY & ARCH COFFEE", "NPP LISTERINE DƯƠNG ANH TÀI", 
+            "NPP BẢO HUY KẸO TOP OKF", "NCC ĐIỀU - CTY MỸ LINH", "NCC BÁNH PÍA - TUYẾT THIỆN AN", "NPP TÂM LÀNH CÀ PHÊ TRUNG NGUYÊN", 
+            "NCC ESSENTIALS - CTY HƯƠNG BÌNH LAURIER", "NCC CÔNG TY THỰC PHẨM ÂN NAM", "NPP MINH CHÂU PHẠM", "NCC - LEEA. CAKE", "TRÀ COZY", 
+            "NPP CTY CP SP SINH THÁI - TRÀ COZY", "NPP PHƯƠNG HẠNH MÌ & TRÀ C2", "NPP HUYỀN MY BÁNH TRÁNG", "NPP PHÚC TÀI TOÀN BÁNH MEIJI", 
+            "PHÚC THỊNH FOOD", "ĐẶC SẢN CHUMPA", "NPP SỮA VINAMILK - PHƯƠNG", "NPP 247 INTRACO - CHOCOLATE MM HENK DR FRUIT", 
+            "NPP THÁI THÀNH - ĐẶC SẢN KHÔ CÁ", "NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)", "SHOPEE", "NCC BIA - BEER LÀO", 
+            "NCC TRÀ KHÔ - ĐÔNG SƠN HÀ", "CTY HỮU PHÚC - PULPPY", "NCC RƯỢU - HALICO (VIỆT TUẤN BÌNH)", "NCC BIA - BIA SG NGUYÊN NGỌC", 
+            "NPP HOÀNG MINH HUY THẠCH CAO QUY LINH", "NPP - TRÀ LONG THÁI", "NPP LỘC NHI BÁNH GẠO", "PHƯỚC TÀI - KOTEX", 
+            "NPP NAM ANH ĐỨC KẸO DẺO LOT100 & KARO", "NPP LIPTION NESTEA - HỮU PHÚC", "NPP TUYẾT LAN (CHỢ) MÈ XỬNG - KHÔ MÈ", 
+            "NCC KEM TRÁI CÂY - LIMU PALETAS", "NPP BÁNH PÍA - THÀNH YÊN", "NPP TỔNG HỢP TUẤN VIỆT P&G", "NPP BÁNH MÌ AP GROUP", 
+            "NCC SỮA LÊN MEN - BETAGEN", "NCC TRÁI CÂY KHAY - ANH TUẤN", "NCC VELA - THANH MINH PHÁT", "NCC - COCO FARM", 
+            "NCC THUỐC LÁ - TRUNG OCB & ESSE", "NPP TRÁI CÂY SẤY - NGON LẠ ĐÀ LẠT", "NPP XÚC XÍCH SIU TO - HOÀNG ĐỨC HẢI", 
+            "NPP RƯỢU - PHÚ AN THÀNH", "NPP ROHTO", "ẤN HẠNH", "NCC BIA - THÁI MỸ HƯƠNG BIA NGŨ HÀNH", "NCC DỪA - CTY COCOLIKE", 
+            "NCC OMACHI - TÂM BẢO PHƯƠNG", "NPP THÀNH NAM + TIÊN HƯƠNG", "NPP CHOCO BON - KỲ TIÊN", "BẾP MẸ HÀN QUỐC", "NPP PHƯỚC CƯỜNG", 
+            "PHƯỚC TÀI - CJ FOOD", "NPP MAYORA", "THỰC PHẨM G KITCHEN", "THU MUA - ONE STOP", "CHUỖI DV 60S", "THÁI MỸ HƯƠNG - COCOXIM", 
+            "NGUYÊN MINH HOÀNG - UNILEVER", "TOPCOCO DAVIFOOD - HUY HOÀNG GIA", "NPP HƯƠNG TRÀ", "NPP SC NẾP CẨM - BÁCH HOA", 
+            "VN POSTCARDS - MONO CONCEPT", "HƯƠNG BÌNH - PRINGLES", "QUỐC TẾ HẢI THIÊN", "NGON NGON", "NCC TÚI VẢI CANVAS", 
+            "CTY VINEYARD", "Hội An Salaisons / Les Artisans d’Indochine", "NCC THUỐC LÁ - TL SÀI GÒN", "CTY TNHH COOBEE VN", 
+            "CTY TNHH YAKULT", "NCC BIA - HOÀNG MẠNH NAM (1664, BUD, CORONA)", "CTY TNHH DAEWOO INNOVATION - G4YOU", "NCC SOUVENIRS - AMLT", 
+            "NCC THUỐC LÁ - THANH CHƯƠNG", "NCC BAO BÌ - VĂN SAN", "NCC - HẢI GIA CÁT", "NCC NUTZIE", "NCC - SANNY SOUVENIR", 
+            "CHOCOLATE ALLUVIA", "NPP KỲ TIÊN - KIDO'S", "NPP TM TOÀN LÊ GIA", "NCC SOUVENIRS - NGỌT STUDIO", 
+            "NCC RƯỢU - THE LOCAL DISTILLERY DA NANG WHISKEY", "CTY CP CÔNG NGHỆ DAVIFOOD VN", "THU MUA - NGUYÊN NGUYỄN", 
+            "BIA NHÀ BREWHOUSE & TAPROOM", "NCC RƯỢU VANG - CTY TNHH TM THIÊN LINH", "CTY TNHH S.E.A CRAFT BREW TRADING (EAST WEST)", 
+            "NPP HUY TÍN - SG FOOD", "CTY TNHH EVRA ORIENT TRADING (SAIGON SPIRITS)", "NPP MỸ PHƯƠNG PHÁT", "CTY TNHH BANH TAI THONG", 
+            "CTY TNHH TM DV MAGNOLIA VN (TOUCAN)", "CTY TNHH MEGA MARKET", "NCC TRÌNH COFFEE", "NCC - NGHIÊM TRẦN LAFOOCO", 
+            "CTY CÔNG NGHỆ THỰC PHẨM D&T", "NCC KBC - SNACK GOKOCHI", "NCC TRẦN LÊ GIA - SAMYANG /HERSHEY"
+        ];
 
-        // --- COMPONENT: MESSAGE TOAST ---
+        // --- COMPONENT: AN TOÀN CHO LUCIDE ICON TRONG REACT ---
+        const Icon = ({ name, className = '' }) => {
+            const ref = useRef(null);
+            useEffect(() => {
+                if (ref.current && window.lucide) {
+                    ref.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
+                    window.lucide.createIcons({ root: ref.current });
+                }
+            }, [name, className]);
+            return <span ref={ref} style={{ display: 'contents' }}></span>;
+        };
+
         const Toast = ({ message, type }) => {
             if (!message) return null;
             const bg = type === 'error' ? 'bg-red text-white' : 'bg-green text-white';
             return (
-                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg text-sm font-bold toast-message ${bg}`}>
+                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg text-sm font-bold toast-message whitespace-nowrap ${bg}`}>
                     {message}
                 </div>
             );
         };
 
-        // --- COMPONENT: GAUGE CHART ---
+        // --- COMPONENT: GAUGE CHART (RE-DESIGNED THEO ẢNH MẪU) ---
         const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
-            const radius = 70;
-            const circumference = Math.PI * radius;
-            const percentage = max > 0 ? Math.min(value / max, 1) : 1;
-            const strokeDashoffset = circumference - percentage * circumference;
+            const percentage = max > 0 ? Math.min(value / max, 1) : 0;
+            // Arc logic for rounded caps SVG
+            const cx = 100;
+            const cy = 90;
+            const r = 75;
+            const strokeWidth = 24;
+            
+            // Calculate dash array for semicircle (PI * r)
+            const circumference = Math.PI * r;
+            const strokeDashoffset = circumference - (percentage * circumference);
 
             return (
-                <div className="flex flex-col items-center p-5 bg-white rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.04)] border border-navy/5">
-                    <div className="flex w-full justify-between items-start mb-2">
-                        <span className="text-slate font-medium text-sm">{label}</span>
-                        <span className="text-2xl font-bold text-navy">{max}</span>
+                <div className="flex flex-col items-center p-6 bg-white rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5">
+                    <div className="w-full text-center mb-6">
+                        <span className="text-slate font-medium text-sm block mb-1">{label}</span>
+                        <span className="text-3xl font-extrabold text-navy">{max}</span>
                     </div>
-                    <div className="relative w-48 h-24 overflow-hidden flex justify-center mt-2">
-                        <svg className="w-full h-full" viewBox="0 0 200 100">
-                            <path d="M 20 90 A 70 70 0 0 1 180 90" fill="none" stroke="#E4DBD1" strokeWidth="16" strokeLinecap="round" />
-                            <path d="M 20 90 A 70 70 0 0 1 180 90" fill="none" stroke={color} strokeWidth="16" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000 ease-out" />
+                    
+                    <div className="relative w-56 h-32 overflow-hidden flex justify-center">
+                        <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 200 100">
+                            {/* Background Arc */}
+                            <path 
+                                d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} 
+                                fill="none" 
+                                stroke="#D1D5DB" 
+                                strokeWidth={strokeWidth} 
+                                strokeLinecap="round" 
+                            />
+                            {/* Foreground Progress Arc */}
+                            <path 
+                                d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} 
+                                fill="none" 
+                                stroke={color} 
+                                strokeWidth={strokeWidth} 
+                                strokeLinecap="round" 
+                                strokeDasharray={circumference} 
+                                strokeDashoffset={strokeDashoffset} 
+                                className="transition-all duration-1000 ease-out" 
+                            />
                         </svg>
+                        
+                        {/* Percentage inside chart */}
                         <div className="absolute bottom-1 flex flex-col items-center">
-                            <span className="text-2xl font-bold" style={{ color: color }}>{Math.round(percentage * 100)}%</span>
+                            <span className="text-xl font-bold" style={{ color: color }}>
+                                {Math.round(percentage * 100)}%
+                            </span>
                         </div>
                     </div>
-                    <div className="w-full flex justify-between mt-4 text-[11px] font-medium text-slate/70 border-t border-sand/50 pt-3 uppercase tracking-wider">
-                        <span>{subLabelLeft}</span>
-                        <span>{subLabelRight}</span>
+                    
+                    {/* Sub labels aligned exactly like the reference image */}
+                    <div className="w-full mt-2 pt-4 border-t border-sand/50">
+                        <p className="text-center text-sm font-semibold text-navy mb-2">Công suất xử lý</p>
+                        <div className="flex justify-between text-xs font-medium text-slate">
+                            <span>{subLabelLeft}</span>
+                            <span>{subLabelRight}</span>
+                        </div>
                     </div>
                 </div>
             );
@@ -123,8 +210,8 @@
                     else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
                 } catch (error) {
                     console.log("Mock scan mode (API error/CORS)");
-                    setProduct({ name: 'Sữa tươi Vinamilk Demo ' + barcode, npp: 'NPP Vinamilk HCM' });
-                    setNpp('NPP Vinamilk HCM');
+                    setProduct({ name: 'Sản phẩm Demo ' + barcode, npp: 'NCC NƯỚC - NƯỚC SUỐI LAVIE' });
+                    setNpp('NCC NƯỚC - NƯỚC SUỐI LAVIE');
                 } finally { setIsLoading(false); }
             };
 
@@ -151,20 +238,22 @@
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
-                            <span className="bg-gold/20 p-2 rounded-xl mr-3 text-gold"><i data-lucide="clock"></i></span> Rà Soát Hạn Sử Dụng
+                            <span className="bg-gold/20 p-2 rounded-xl mr-3 text-gold"><Icon name="clock" /></span> Rà Soát Hạn Sử Dụng
                         </h2>
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Mã vạch sản phẩm</label>
                                 <div className="flex gap-2">
                                     <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
-                                    <button onClick={handleScan} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14 transition-colors">{isLoading ? "..." : <i data-lucide="scan-line"></i>}</button>
+                                    <button onClick={handleScan} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14 transition-colors">
+                                        {isLoading ? "..." : <Icon name="scan-line" />}
+                                    </button>
                                 </div>
                             </div>
                             
                             {product && (
                                 <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-gold"><i data-lucide="package-search"></i></div>
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-gold"><Icon name="package-search" /></div>
                                     <div>
                                         <p className="text-[11px] font-semibold text-navy/50 uppercase">Sản phẩm</p>
                                         <p className="font-bold text-navy leading-tight">{product.name}</p>
@@ -187,10 +276,10 @@
                                 <label className="block text-sm font-semibold text-navy">Hướng xử lý <span className="text-red">*</span></label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button onClick={() => setAction('doitra')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'doitra' ? 'border-blue bg-blue/10 text-navy' : 'border-blue/20 text-slate'}`}>
-                                        <i data-lucide="refresh-ccw" className={action === 'doitra' ? 'text-blue' : 'text-blue/40'}></i> Đổi Trả NPP
+                                        <Icon name="refresh-ccw" className={action === 'doitra' ? 'text-blue' : 'text-blue/40'} /> Đổi Trả NPP
                                     </button>
                                     <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy' : 'border-blue/20 text-slate'}`}>
-                                        <i data-lucide="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'}></i> Giảm Giá TT
+                                        <Icon name="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'} /> Giảm Giá TT
                                     </button>
                                 </div>
                                 {action === 'doitra' && (
@@ -199,7 +288,7 @@
                                         <div className="relative">
                                             <input list="npp-list" value={npp} onChange={(e)=>setNpp(e.target.value)} className="w-full bg-white border border-blue/50 rounded-xl p-3 pr-10 text-navy outline-none shadow-sm" placeholder="Tìm NPP..." />
                                             <datalist id="npp-list">{MOCK_NPP_LIST.map(n => <option key={n} value={n} />)}</datalist>
-                                            <i data-lucide="search" className="absolute right-3 top-3.5 text-navy/40 w-5 h-5"></i>
+                                            <Icon name="search" className="absolute right-3 top-3.5 text-navy/40 w-5 h-5" />
                                         </div>
                                     </div>
                                 )}
@@ -221,6 +310,7 @@
             const [qty, setQty] = useState('');
             const [npp, setNpp] = useState('');
             const [isNewModel, setIsNewModel] = useState(false);
+            const [imgBase64, setImgBase64] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
@@ -239,23 +329,41 @@
                     else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
                 } catch (error) {
                     console.log("Mock scan mode");
-                    // Giả lập 1 sản phẩm bị thiếu ảnh
-                    setProduct({ name: 'Cà phê đặc sản ONE STOP', npp: 'Kho Tổng ONE STOP', hasImage: false });
-                    setNpp('Kho Tổng ONE STOP');
+                    setProduct({ name: 'Sản phẩm Demo ' + barcode, npp: 'NCC BIA - SAPPORO', hasImage: false });
+                    setNpp('NCC BIA - SAPPORO');
                 } finally { setIsLoading(false); }
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setImgBase64(reader.result.split(',')[1]); // Lấy phần Base64, bỏ prefix
+                    };
+                    reader.readAsDataURL(file);
+                }
             };
 
             const handleSubmit = async () => {
                 if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
-                if(!product.hasImage && !isNewModel) return showMsg("Bắt buộc phải tải ảnh lên cho sản phẩm này!");
+                if(product.hasImage === false && !imgBase64) return showMsg("Bắt buộc phải tải ảnh lên cho sản phẩm này!");
                 
                 setIsLoading(true);
-                const payload = { action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp };
+                const payload = { 
+                    action: "submitDatHang", 
+                    barcode: barcode, 
+                    name: product.name, 
+                    qty: qty, 
+                    npp: npp,
+                    imageBase64: imgBase64,
+                    isNewModel: isNewModel
+                };
                 
                 try {
                     await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                     showMsg("Gửi yêu cầu đặt hàng thành công!", "success");
-                    setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false);
+                    setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setImgBase64('');
                 } catch (error) { showMsg("Lỗi gửi dữ liệu!"); } 
                 finally { setIsLoading(false); }
             };
@@ -265,7 +373,7 @@
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
-                            <span className="bg-blue/20 p-2 rounded-xl mr-3 text-blue"><i data-lucide="shopping-cart"></i></span> Yêu Cầu Đặt Hàng
+                            <span className="bg-blue/20 p-2 rounded-xl mr-3 text-blue"><Icon name="shopping-cart" /></span> Yêu Cầu Đặt Hàng
                         </h2>
 
                         <div className="space-y-6">
@@ -273,7 +381,9 @@
                                 <label className="block text-sm font-semibold text-navy">Mã Barcode</label>
                                 <div className="flex gap-2">
                                     <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
-                                    <button onClick={handleScan} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14">{isLoading ? "..." : <i data-lucide="scan-line"></i>}</button>
+                                    <button onClick={handleScan} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14">
+                                        {isLoading ? "..." : <Icon name="scan-line" />}
+                                    </button>
                                 </div>
                             </div>
 
@@ -281,17 +391,17 @@
                                 <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex gap-4 items-center">
                                     {product.hasImage !== false ? (
                                         <div className="w-16 h-16 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0">
-                                            <i data-lucide="image" className="text-blue/50"></i>
+                                            <Icon name="image" className="text-blue/50" />
                                         </div>
                                     ) : (
                                         <div className="w-16 h-16 bg-red/10 rounded-xl border border-red/20 flex flex-col items-center justify-center shrink-0 text-red">
-                                            <i data-lucide="image" className="w-5 h-5"></i>
+                                            <Icon name="image" className="w-5 h-5" />
                                             <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Thiếu Ảnh</span>
                                         </div>
                                     )}
                                     <div>
                                         <p className="font-bold text-navy leading-tight">{product.name}</p>
-                                        <p className="text-xs text-slate mt-1 flex items-center gap-1"><i data-lucide="map-pin" className="w-3 h-3"></i> {product.npp}</p>
+                                        <p className="text-xs text-slate mt-1 flex items-center gap-1"><Icon name="map-pin" className="w-3 h-3" /> {product.npp}</p>
                                     </div>
                                 </div>
                             )}
@@ -306,7 +416,7 @@
                                 <div className="relative">
                                     <input list="npp-list-order" value={npp} onChange={(e)=>setNpp(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-navy outline-none" placeholder="Tìm NPP..." />
                                     <datalist id="npp-list-order">{MOCK_NPP_LIST.map(n => <option key={n} value={n} />)}</datalist>
-                                    <i data-lucide="search" className="absolute right-4 top-4 text-navy/40 w-5 h-5"></i>
+                                    <Icon name="search" className="absolute right-4 top-4 text-navy/40 w-5 h-5" />
                                 </div>
                             </div>
 
@@ -323,16 +433,26 @@
                                     
                                     {product.hasImage !== false && (
                                         <label className="flex items-center gap-3 mb-4 cursor-pointer">
-                                            <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded" />
+                                            <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded border-blue/50" />
                                             <span className="text-sm text-navy font-semibold">Cập nhật mẫu mã mới</span>
                                         </label>
                                     )}
 
                                     {(product.hasImage === false || isNewModel) && (
-                                        <div className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-navy hover:bg-navy/5">
-                                            <div className="w-12 h-12 bg-sand/50 rounded-full flex items-center justify-center mb-3 text-navy"><i data-lucide="upload-cloud"></i></div>
-                                            <span className="text-sm text-navy font-semibold">Tải ảnh mặt trước bao bì</span>
-                                        </div>
+                                        <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-navy hover:bg-navy/5 transition-all">
+                                            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+                                            {imgBase64 ? (
+                                                <div className="flex flex-col items-center text-green">
+                                                    <Icon name="check-circle-2" className="w-10 h-10 mb-2" />
+                                                    <span className="text-sm font-bold">Đã tải ảnh lên thành công!</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center">
+                                                    <div className="w-12 h-12 bg-sand/50 rounded-full flex items-center justify-center mb-3 text-navy"><Icon name="upload-cloud" /></div>
+                                                    <span className="text-sm text-navy font-semibold">Bấm để chụp ảnh bao bì</span>
+                                                </div>
+                                            )}
+                                        </label>
                                     )}
                                 </div>
                             )}
@@ -353,31 +473,35 @@
             const [orders, setOrders] = useState([]);
             const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
             const [isLoading, setIsLoading] = useState(true);
+            const [apiError, setApiError] = useState('');
 
             useEffect(() => {
                 const fetchDashboardData = async () => {
                     try {
                         const response = await fetch(`${API_URL}?action=getDashboard`);
                         const result = await response.json();
-                        if (result.returns) {
+                        
+                        if (result.error) {
+                            setApiError(`Lỗi từ Google Sheets: ${result.error}`);
+                        } else if (result.returns) {
                             setReturns(result.returns);
                             setDiscounts(result.discounts);
                             setOrders(result.orders);
                         }
                     } catch (error) {
-                        console.log("Mock Dashboard Data");
+                        console.log("Mock Dashboard Data Load");
+                        // Mock data for display testing
                         setReturns([
-                            { id: 1, name: 'Sữa tươi Vinamilk', qty: 10, npp: 'NPP Vinamilk', status: 'Chờ xử lý', note: '' },
-                            { id: 2, name: 'Bánh Kinh Đô', qty: 5, npp: 'NPP Mondelez', status: 'Đã báo NPP', note: '' }
+                            { id: 1, name: 'Sữa tươi Vinamilk', qty: 10, npp: 'NCC NƯỚC - NƯỚC SUỐI LAVIE', status: 'Chờ xử lý', note: '' },
+                            { id: 2, name: 'Bánh Kinh Đô', qty: 5, npp: 'NPP VŨ MINH HƯNG - KINH ĐÔ', status: 'Đã báo NPP', note: '' }
                         ]);
                         setDiscounts([
                             { id: 1, name: 'Bánh Sandwitch', daysLeft: 7, qtyOriginal: 20, qtyActual: '', suggestPct: 40, actualPct: 40 },
                             { id: 2, name: 'Nước trái cây TH', daysLeft: 15, qtyOriginal: 12, qtyActual: 12, suggestPct: 20, actualPct: 25 }
                         ]);
                         setOrders([
-                            { id: 1, name: 'Cold Brew', qty: 24, npp: 'Kho Tổng ONE STOP', hoursWait: 10 },
-                            { id: 2, name: 'Kombucha Vải', qty: 24, npp: 'NPP Đồ uống Local', hoursWait: 26 },
-                            { id: 3, name: 'Bánh mì que', qty: 30, npp: 'NPP Bánh ngọt ĐN', hoursWait: 38 }
+                            { id: 1, name: 'Cold Brew Đóng chai', qty: 24, npp: 'NCC CÀ PHÊ - K-CAFE', hoursWait: 10 },
+                            { id: 2, name: 'Bánh mì que', qty: 30, npp: 'NPP VŨ MINH HƯNG - KINH ĐÔ', hoursWait: 38 }
                         ]);
                     } finally {
                         setIsLoading(false);
@@ -416,7 +540,7 @@
             const pendingOrders = Object.keys(groupedOrders).length;
             const totalOrders = pendingOrders + completedOrdersCount;
 
-            if(isLoading) return <div className="h-screen flex items-center justify-center text-navy font-bold text-xl">Đang tải dữ liệu...</div>;
+            if(isLoading) return <div className="h-screen flex flex-col items-center justify-center text-navy font-bold text-lg"><Icon name="loader-2" className="animate-spin w-10 h-10 mb-4 text-gold" />Đang tải dữ liệu...</div>;
 
             return (
                 <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6 pb-28">
@@ -424,6 +548,13 @@
                         <h1 className="text-3xl font-bold text-navy tracking-tight">ONE STOP <span className="font-light">| Operations</span></h1>
                         <p className="text-slate mt-1 font-medium">Trung tâm điều hành cửa hàng</p>
                     </div>
+
+                    {apiError && (
+                        <div className="mb-6 p-4 bg-red/10 border border-red/30 rounded-2xl text-darkred font-medium flex items-center">
+                            <Icon name="alert-triangle" className="mr-3" />
+                            {apiError}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                         <GaugeChart value={processedDiscounts} max={totalDiscounts} label="Xử lý cận Date & Giảm giá" subLabelLeft={`Đã KT: ${processedDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color={processedDiscounts === totalDiscounts && totalDiscounts > 0 ? "#0AA878" : "#F0573A"} />
@@ -436,7 +567,7 @@
                         <div className="bg-white rounded-3xl shadow-sm border-2 border-red/20 overflow-hidden relative">
                             <div className="absolute top-0 left-0 w-full h-1 bg-red"></div>
                             <div className="bg-white p-5 border-b border-sand/50 flex justify-between items-center">
-                                <h2 className="font-bold text-navy flex items-center"><i data-lucide="alert-triangle" className="mr-3 text-red"></i> TỒN KHO CẬN DATE & GIẢM GIÁ</h2>
+                                <h2 className="font-bold text-navy flex items-center"><Icon name="alert-triangle" className="mr-3 text-red" /> TỒN KHO CẬN DATE & GIẢM GIÁ</h2>
                                 <span className="text-xs font-bold text-darkred bg-red/10 px-3 py-1.5 rounded-full uppercase">Bắt buộc cập nhật</span>
                             </div>
                             <div className="p-0 overflow-x-auto">
@@ -450,6 +581,9 @@
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sand/50">
+                                        {discounts.length === 0 && (
+                                            <tr><td colSpan="4" className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Cận Date & Giảm Giá</td></tr>
+                                        )}
                                         {discounts.map(d => (
                                             <tr key={d.id} className="hover:bg-sand/10">
                                                 <td className="p-4">
@@ -474,7 +608,7 @@
                         {/* KHU 2: ĐỔI TRẢ */}
                         <div className="bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden">
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
-                                <h2 className="font-semibold flex items-center"><i data-lucide="refresh-ccw" className="mr-3 text-gold"></i> QUẢN LÝ ĐỔI TRẢ</h2>
+                                <h2 className="font-semibold flex items-center"><Icon name="refresh-ccw" className="mr-3 text-gold" /> QUẢN LÝ ĐỔI TRẢ</h2>
                                 <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{returns.length} Yêu cầu</span>
                             </div>
                             <div className="p-0 overflow-x-auto">
@@ -488,6 +622,9 @@
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sand/50">
+                                        {returns.length === 0 && (
+                                            <tr><td colSpan="4" className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Đổi Trả NPP</td></tr>
+                                        )}
                                         {returns.map(r => (
                                             <tr key={r.id} className="hover:bg-sand/10">
                                                 <td className="p-4 font-bold text-navy">{r.name} <span className="text-gold ml-1">x{r.qty}</span></td>
@@ -510,7 +647,7 @@
                         {/* KHU 3: ĐẶT HÀNG */}
                         <div className="bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden">
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
-                                <h2 className="font-semibold flex items-center"><i data-lucide="shopping-cart" className="mr-3 text-gold"></i> DUYỆT ĐẶT HÀNG</h2>
+                                <h2 className="font-semibold flex items-center"><Icon name="shopping-cart" className="mr-3 text-gold" /> DUYỆT ĐẶT HÀNG</h2>
                             </div>
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {Object.keys(groupedOrders).map(nppName => {
@@ -524,7 +661,7 @@
                                                     <span className={`text-xs font-bold mt-1 block ${alertStyle.text}`}>{alertStyle.icon} (Chờ: {maxWait}h)</span>
                                                 </div>
                                                 <button onClick={() => handleCloseOrders(nppName)} className="bg-navy hover:bg-slate text-sand text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center">
-                                                    <i data-lucide="check-circle-2" className="w-4 h-4 mr-1 text-gold"></i> Đã chốt
+                                                    <Icon name="check-circle-2" className="w-4 h-4 mr-1 text-gold" /> Đã chốt
                                                 </button>
                                             </div>
                                             <div className="p-4 bg-white">
@@ -552,11 +689,6 @@
         const App = () => {
             const [activeTab, setActiveTab] = useState('candate');
 
-            // Cập nhật lại thư viện Icon mỗi khi React Render lại DOM
-            useEffect(() => { 
-                if(window.lucide) { window.lucide.createIcons(); }
-            });
-
             return (
                 <div className="bg-sand min-h-screen font-sans pb-20">
                     <div className="w-full">
@@ -568,13 +700,13 @@
                     <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
                         <div className="bg-white/90 backdrop-blur-md shadow-lg rounded-3xl flex justify-around p-2 w-full max-w-md pointer-events-auto">
                             <button onClick={() => setActiveTab('candate')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl ${activeTab === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
-                                <i data-lucide="clock" className="h-5 w-5"></i><span className="text-[10px] font-bold tracking-wider mt-1">CẬN DATE</span>
+                                <Icon name="clock" className="h-5 w-5" /><span className="text-[10px] font-bold tracking-wider mt-1">CẬN DATE</span>
                             </button>
                             <button onClick={() => setActiveTab('dathang')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl ${activeTab === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
-                                <i data-lucide="shopping-cart" className="h-5 w-5"></i><span className="text-[10px] font-bold tracking-wider mt-1">ĐẶT HÀNG</span>
+                                <Icon name="shopping-cart" className="h-5 w-5" /><span className="text-[10px] font-bold tracking-wider mt-1">ĐẶT HÀNG</span>
                             </button>
                             <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl ${activeTab === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
-                                <i data-lucide="layout-dashboard" className="h-5 w-5"></i><span className="text-[10px] font-bold tracking-wider mt-1">DASHBOARD</span>
+                                <Icon name="layout-dashboard" className="h-5 w-5" /><span className="text-[10px] font-bold tracking-wider mt-1">DASHBOARD</span>
                             </button>
                         </div>
                     </div>
