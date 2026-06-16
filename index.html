@@ -46,9 +46,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // ==========================================
-        // CẤU HÌNH API
-        // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec"; 
         const IMGBB_API_KEY = "3181c25975e5fa84efc4d94d859a5783"; 
         
@@ -144,33 +141,40 @@
             );
         };
 
+        const ProductAvatar = ({ url }) => {
+            if (url) return <img src={url} className="w-8 h-8 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
+            return <div className="w-8 h-8 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-4 h-4 text-slate/40" /></div>;
+        };
+
         const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
             const percentage = max > 0 ? Math.min(value / max, 1) : 0;
             const cx = 100; const cy = 90; const r = 75; const strokeWidth = 24;
             const circumference = Math.PI * r;
             const strokeDashoffset = circumference - (percentage * circumference);
             
-            let bgClass = "bg-white";
-            if(color === "#F0573A") bgClass = "bg-red/10";
-            if(color === "#103F67") bgClass = "bg-navy/10";
-            if(color === "#DAAF4F") bgClass = "bg-gold/20";
+            let overlayClass = "";
+            if(color === "#F0573A") overlayClass = "bg-red/10";
+            if(color === "#103F67") overlayClass = "bg-navy/5";
+            if(color === "#DAAF4F") overlayClass = "bg-gold/15";
 
             return (
-                <div className={`flex flex-col items-center p-6 rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5 ${bgClass}`}>
-                    <div className="w-full text-center mb-6">
-                        <span className="text-navy font-extrabold uppercase tracking-wider text-sm block mb-1" style={{ color: color }}>{label}</span>
+                <div className="relative flex flex-col items-center p-6 rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5 bg-white overflow-hidden">
+                    <div className={`absolute inset-0 ${overlayClass} pointer-events-none`}></div>
+                    
+                    <div className="w-full text-center mb-6 relative z-10">
+                        <span className="font-extrabold uppercase tracking-wider text-sm block mb-1" style={{ color: color }}>{label}</span>
                         <span className="text-3xl font-extrabold text-navy">{max}</span>
                     </div>
-                    <div className="relative w-56 h-32 overflow-hidden flex justify-center">
+                    <div className="relative w-56 h-32 overflow-hidden flex justify-center z-10">
                         <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 200 100">
-                            <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="#D1D5DB" strokeWidth={strokeWidth} strokeLinecap="round" />
+                            <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="#F1F5F9" strokeWidth={strokeWidth} strokeLinecap="round" />
                             <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000 ease-out" />
                         </svg>
                         <div className="absolute bottom-1 flex flex-col items-center">
                             <span className="text-xl font-bold" style={{ color: color }}>{Math.round(percentage * 100)}%</span>
                         </div>
                     </div>
-                    <div className="w-full mt-2 pt-4 border-t border-navy/10">
+                    <div className="w-full mt-2 pt-4 border-t border-navy/10 relative z-10">
                         <p className="text-center text-xs font-bold text-navy/70 uppercase tracking-wide mb-2">TIẾN ĐỘ HOÀN THÀNH</p>
                         <div className="flex justify-between text-xs font-medium text-navy/80">
                             <span>{subLabelLeft}</span>
@@ -190,13 +194,6 @@
             return '60 ngày';
         };
 
-        // --- COMPONENT AVATAR NHỎ TRONG BẢNG ---
-        const ProductAvatar = ({ url }) => {
-            if (url) return <img src={url} className="w-8 h-8 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0" />;
-            return <div className="w-8 h-8 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-4 h-4 text-slate/40" /></div>;
-        };
-
-        // --- VIEW 1: CẬN DATE ---
         const ViewCanDate = ({ addToSyncQueue }) => {
             const [barcode, setBarcode] = useState('');
             const [product, setProduct] = useState(null);
@@ -300,22 +297,20 @@
             );
         };
 
-        // --- VIEW 2: ĐẶT HÀNG ---
         const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue }) => {
             const [barcode, setBarcode] = useState('');
             const [product, setProduct] = useState(null);
             const [qty, setQty] = useState('');
             const [npp, setNpp] = useState('');
             const [isNewModel, setIsNewModel] = useState(false);
-            const [imgBase64, setImgBase64] = useState('');
-            const [isLoading, setIsLoading] = useState(false);
-            const [isScanning, setIsScanning] = useState(false);
-            const [msg, setMsg] = useState({ text: '', type: '' });
-
-            // State Upload ImgBB
+            
             const [localBase64Preview, setLocalBase64Preview] = useState(''); 
             const [cloudImageUrl, setCloudImageUrl] = useState(''); 
             const [isUploadingCloud, setIsUploadingCloud] = useState(false);
+
+            const [isLoading, setIsLoading] = useState(false);
+            const [isScanning, setIsScanning] = useState(false);
+            const [msg, setMsg] = useState({ text: '', type: '' });
 
             const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
@@ -442,7 +437,6 @@
             );
         };
 
-        // --- VIEW 3: DASHBOARD (HOÀN TOÀN MỚI & SỬA LỖI TRẮNG TRANG) ---
         const ViewDashboard = ({ addToSyncQueue }) => {
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [password, setPassword] = useState('');
@@ -451,24 +445,26 @@
             const [returns, setReturns] = useState([]);
             const [discounts, setDiscounts] = useState([]);
             const [orders, setOrders] = useState([]);
-            const [archivedOrders, setArchivedOrders] = useState([]); // KHÔI PHỤC BIẾN NÀY ĐỂ TRÁNH LỖI REFERENCE ERROR
+            const [archivedOrders, setArchivedOrders] = useState([]); 
 
             const [isLoading, setIsLoading] = useState(false);
             const [apiError, setApiError] = useState('');
             const [msg, setMsg] = useState({ text: '', type: '' });
+            
+            const [itemToDelete, setItemToDelete] = useState(null);
 
             const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const [activeOrderNppTab, setActiveOrderNppTab] = useState('');
             const [activeReturnTimeTab, setActiveReturnTimeTab] = useState('0 ngày');
             const [activeReturnNppTab, setActiveReturnNppTab] = useState('');
+            const [activeDiscountFilter, setActiveDiscountFilter] = useState('ALL');
 
             const fetchDashboardData = async () => {
                 setIsLoading(true);
                 try {
                     const response = await fetch(`${API_URL}?action=getDashboard`);
                     const result = await response.json();
-                    
                     if (result.error) {
                         setApiError(`Lỗi API: ${result.error}`);
                     } else if (result.returns) {
@@ -491,11 +487,8 @@
                 return () => clearInterval(interval);
             }, [isAuthenticated]);
 
-            // --- LỌC ĐƠN ĐẶT HÀNG & SORT THÔNG MINH ---
             const groupedOrders = orders.reduce((acc, order) => {
-                if (!acc[order.npp]) acc[order.npp] = [];
-                acc[order.npp].push(order);
-                return acc;
+                if (!acc[order.npp]) acc[order.npp] = []; acc[order.npp].push(order); return acc;
             }, {});
 
             const sortedNppOrderTabs = Object.keys(groupedOrders).map(npp => ({
@@ -510,7 +503,6 @@
                 }
             }, [orders, archivedOrders]);
 
-            // --- LỌC ĐỔI TRẢ ---
             useEffect(() => {
                 if (returns.length > 0) {
                    const availableBuckets = returns.map(r => getExpBucket(r.daysLeft));
@@ -534,18 +526,20 @@
                 } else if (activeReturnNpps.length === 0) { setActiveReturnNppTab(''); }
             }, [filteredReturns]);
 
-            // --- HÀM XỬ LÝ (ACTIONS) ---
             const handleReturnStatus = (id, newStatus) => {
                 setReturns(returns.map(r => r.id === id ? { ...r, status: newStatus } : r));
                 addToSyncQueue({ action: "updateReturnStatus", id: id, status: newStatus });
             };
 
-            const handleDeleteReturn = (id, productName) => {
-                if(window.confirm(`XÓA VĨNH VIỄN: Bạn có chắc chắn muốn xóa "${productName}" khỏi danh sách đổi trả? Thao tác này sẽ xóa dữ liệu trên Google Sheets.`)) {
-                    setReturns(returns.filter(r => r.id !== id));
-                    addToSyncQueue({ action: "deleteReturn", id: id });
-                    showMsg("Đã xóa. Đang đồng bộ...", "success");
-                }
+            const confirmDelete = (id, name, type) => { setItemToDelete({ id, name, type }); };
+
+            const executeDelete = () => {
+                if (!itemToDelete) return;
+                if (itemToDelete.type === 'return') setReturns(returns.filter(r => r.id !== itemToDelete.id));
+                else if (itemToDelete.type === 'discount') setDiscounts(discounts.filter(d => d.id !== itemToDelete.id));
+                addToSyncQueue({ action: "deleteReturn", id: itemToDelete.id });
+                showMsg("Đã xóa. Đang đồng bộ...", "success");
+                setItemToDelete(null);
             };
             
             const handleCloseOrders = (nppName) => {
@@ -586,6 +580,9 @@
 
             const isDiscountPending = discounts.some(d => d.qtyActual === '' || d.needsDailyUpdate);
 
+            const availableDiscountPcts = [...new Set(discounts.map(d => Number(d.actualPct)))].sort((a, b) => b - a);
+            const filteredDiscounts = activeDiscountFilter === 'ALL' ? discounts : discounts.filter(d => Number(d.actualPct) === Number(activeDiscountFilter));
+
             if (!isAuthenticated) {
                 return (
                     <div className="max-w-md mx-auto pt-32 px-4 min-h-screen flex flex-col items-center">
@@ -609,6 +606,21 @@
             return (
                 <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6 pb-28 animate-in fade-in relative">
                     <Toast message={msg.text} type={msg.type} />
+                    
+                    {itemToDelete && (
+                        <div className="fixed inset-0 bg-navy/80 z-[200] flex items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
+                            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center">
+                                <div className="w-16 h-16 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="alert-triangle" className="w-8 h-8" /></div>
+                                <h3 className="text-center font-bold text-navy text-lg mb-2">Xác nhận Xóa</h3>
+                                <p className="text-center text-slate text-sm mb-6">Bạn có chắc chắn muốn xóa vĩnh viễn <strong>{itemToDelete.name}</strong> khỏi danh sách {itemToDelete.type === 'return' ? 'Đổi Trả' : 'Giảm Giá'}?<br/><span className="text-red font-medium text-xs mt-2 block">Thao tác này sẽ xóa trực tiếp trên Google Sheets.</span></p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setItemToDelete(null)} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50 transition-colors">Hủy</button>
+                                    <button onClick={executeDelete} className="flex-1 py-3 rounded-xl font-bold text-white bg-red hover:bg-darkred transition-colors shadow-md shadow-red/20">Xóa Vĩnh Viễn</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-center mb-8">
                         <div>
                             <h1 className="text-3xl font-bold text-navy tracking-tight">ONE STOP <span className="font-light">| Operations</span></h1>
@@ -622,10 +634,7 @@
                     {isDiscountPending && (
                         <div className="mb-6 p-4 bg-gold/20 border border-gold/50 rounded-2xl text-navy font-bold flex items-start shadow-md animate-pulse">
                             <Icon name="shield-alert" className="mr-3 w-6 h-6 flex-shrink-0 text-gold" />
-                            <div>
-                                <p className="text-lg">KHÓA HỆ THỐNG ĐẦU NGÀY</p>
-                                <p className="text-sm font-medium mt-1">Yêu cầu Quản lý điền đủ thông số "Tồn quầy hiện tại" ở bảng Hàng Cận Date bên dưới để mở khóa toàn bộ Dashboard.</p>
-                            </div>
+                            <div><p className="text-lg">KHÓA HỆ THỐNG ĐẦU NGÀY</p><p className="text-sm font-medium mt-1">Yêu cầu Quản lý điền đủ thông số "Tồn quầy hiện tại" ở bảng Hàng Cận Date bên dưới để mở khóa toàn bộ Dashboard.</p></div>
                         </div>
                     )}
 
@@ -636,12 +645,22 @@
                     </div>
 
                     <div className="space-y-10">
-                        {/* KHU 1: GIẢM GIÁ */}
                         <div className={`bg-white rounded-3xl shadow-md border-2 overflow-hidden relative transition-all ${isDiscountPending ? 'border-red ring-4 ring-red/20' : 'border-sand'}`}>
                             <div className="bg-[#F0573A] p-5 border-b flex justify-between items-center text-white">
                                 <h2 className="font-bold flex items-center text-lg"><Icon name="alert-triangle" className="mr-3" /> THEO DÕI HÀNG CẬN DATE & ÁP DỤNG CHÍNH SÁCH GIẢM GIÁ</h2>
                                 {isDiscountPending && <span className="text-xs font-bold text-red bg-white px-3 py-1.5 rounded-full uppercase shadow-sm">Bắt buộc cập nhật</span>}
                             </div>
+                            
+                            <div className="bg-sand/10 p-3 border-b border-sand/50 flex items-center gap-3 overflow-x-auto hide-scrollbar">
+                                <div className="text-xs font-bold text-navy flex items-center gap-1 whitespace-nowrap"><Icon name="filter" className="w-4 h-4"/> Lọc % Giảm giá:</div>
+                                <button onClick={() => setActiveDiscountFilter('ALL')} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeDiscountFilter === 'ALL' ? 'bg-navy text-sand shadow-md' : 'bg-white text-navy border border-blue/20 hover:bg-sand/50'}`}>Tất cả</button>
+                                {availableDiscountPcts.map(pct => (
+                                    <button key={pct} onClick={() => setActiveDiscountFilter(pct)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeDiscountFilter === pct ? 'bg-gold text-navy shadow-md' : 'bg-white text-navy border border-blue/20 hover:bg-sand/50'}`}>
+                                        Giảm {pct}% <span className="ml-1 px-1.5 py-0.5 bg-white/30 rounded-md text-[10px]">{discounts.filter(d=>Number(d.actualPct)===pct).length}</span>
+                                    </button>
+                                ))}
+                            </div>
+
                             <div className="p-0 overflow-x-auto">
                                 <table className="w-full text-sm text-left border-collapse min-w-[800px]">
                                     <thead className="bg-sand/30 text-slate">
@@ -650,45 +669,67 @@
                                             <th className="p-4 font-semibold uppercase text-[11px] text-center w-28">Gợi ý % Giảm giá</th>
                                             <th className="p-4 font-semibold uppercase text-[11px] text-center w-36">% Giảm Giá Chính Sách</th>
                                             <th className="p-4 font-semibold uppercase text-[11px] text-center w-36">Tồn quầy hiện tại</th>
-                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-32">Khuyến mãi</th>
+                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-32">Khuyến mãi & Thao tác</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sand/50">
-                                        {discounts.length === 0 && (
-                                            <tr><td colSpan="5" className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Cận Date & Giảm Giá</td></tr>
+                                        {filteredDiscounts.length === 0 && (
+                                            <tr><td colSpan="5" className="p-8 text-center text-slate/50 font-medium">Không có dữ liệu trong nhóm này.</td></tr>
                                         )}
-                                        {discounts.map(d => (
-                                            <tr key={d.id} className={`hover:bg-sand/10 transition-colors ${(d.qtyActual === '' || d.needsDailyUpdate) ? 'bg-red/5' : ''}`}>
-                                                <td className="p-4 flex items-center gap-3">
-                                                    <ProductAvatar url={d.imageUrl} />
-                                                    <div>
-                                                        <p className="font-bold text-navy text-base">{d.name}</p>
-                                                        <p className="text-xs font-mono text-slate/70 mt-0.5">SKU: {d.barcode}</p>
-                                                        <p className="text-sm font-medium text-red mt-0.5">Còn {d.daysLeft} ngày <span className="text-blue mx-2">|</span> Số lượng tồn: {d.qtyOriginal}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 text-center font-bold text-slate/40 text-lg">{d.suggestPct}%</td>
-                                                <td className="p-4 text-center">
-                                                    <input type="number" defaultValue={d.actualPct} onBlur={(e) => handleUpdateDiscount(d.id, 'actualPct', e.target.value)} className="w-20 text-center border border-blue/30 rounded-xl p-3 font-bold text-navy bg-sand/20 outline-none focus:ring-2 focus:ring-gold" />
-                                                </td>
-                                                <td className="p-4 text-center relative">
-                                                    <input type="number" defaultValue={d.qtyActual} onBlur={(e) => handleUpdateDiscount(d.id, 'qtyActual', e.target.value)} className={`w-full text-center border-2 rounded-xl p-3 font-bold text-lg outline-none focus:ring-2 ${(d.qtyActual === '' || d.needsDailyUpdate) ? 'border-red/50 bg-red/10 text-darkred' : d.qtyActual == 0 ? 'border-sand bg-sand/50 text-navy/30' : 'border-green/50 bg-green/10 text-green'}`} placeholder="Nhập..." />
-                                                    {d.needsDailyUpdate && d.qtyActual !== '' && <p className="absolute left-0 w-full text-[10px] text-red mt-1 font-bold text-center">Xác nhận lại hôm nay</p>}
-                                                </td>
-                                                <td className="p-4 text-center">
-                                                    <button onClick={() => handleUpdateDiscount(d.id, 'isPromoApplied', !d.isPromoApplied)} className={`w-12 h-6 rounded-full relative transition-colors duration-300 mx-auto block ${d.isPromoApplied ? 'bg-green' : 'bg-slate/30'}`}>
-                                                        <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform duration-300 shadow-sm ${d.isPromoApplied ? 'translate-x-6' : 'translate-x-1'}`}></div>
-                                                    </button>
-                                                    <span className={`text-[10px] font-bold mt-2 block ${d.isPromoApplied ? 'text-green' : 'text-slate/50'}`}>{d.isPromoApplied ? 'Đã chạy' : 'Chưa chạy'}</span>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {filteredDiscounts.map(d => {
+                                            const isZeroAndPromoOn = d.qtyActual == 0 && d.qtyActual !== '' && d.isPromoApplied;
+                                            const needUpdate = d.qtyActual === '' || d.needsDailyUpdate;
+                                            let rowClass = `transition-all duration-500 border-l-4 border-transparent hover:bg-sand/10 `;
+                                            if (isZeroAndPromoOn) rowClass = `bg-red/10 border-l-4 border-l-red relative`;
+                                            else if (needUpdate) rowClass += ` bg-red/5`;
+
+                                            return (
+                                                <tr key={d.id} className={rowClass}>
+                                                    <td className="p-4 flex flex-col justify-center">
+                                                        <div className="flex items-center gap-3">
+                                                            <ProductAvatar url={d.imageUrl} />
+                                                            <div>
+                                                                <p className={`font-bold text-base ${isZeroAndPromoOn ? 'text-darkred' : 'text-navy'}`}>{d.name}</p>
+                                                                <p className="text-xs font-mono text-slate/70 mt-0.5">SKU: {d.barcode}</p>
+                                                                <p className="text-sm font-medium text-red mt-0.5">Còn {d.daysLeft} ngày <span className="text-blue mx-2">|</span> Số lượng tồn: {d.qtyActual !== '' ? d.qtyActual : d.qtyOriginal}</p>
+                                                            </div>
+                                                        </div>
+                                                        {isZeroAndPromoOn && (
+                                                            <div className="mt-4 p-3 bg-darkred text-white text-xs sm:text-sm font-bold rounded-xl border-2 border-red animate-pulse flex items-center gap-3 shadow-[0_0_15px_rgba(185,32,37,0.6)]">
+                                                                <div className="bg-white/20 p-1.5 rounded-lg shrink-0"><Icon name="power-off" className="w-5 h-5" /></div>
+                                                                SẢN PHẨM ĐÃ BÁN HẾT! VUI LÒNG TẮT KHUYẾN MÃI TRÊN POS.
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className={`p-4 text-center font-bold text-slate/40 text-lg ${isZeroAndPromoOn ? 'blur-[2px] opacity-40 pointer-events-none' : ''}`}>{d.suggestPct}%</td>
+                                                    <td className={`p-4 text-center ${isZeroAndPromoOn ? 'blur-[2px] opacity-40 pointer-events-none' : ''}`}>
+                                                        <input type="number" defaultValue={d.actualPct} onBlur={(e) => handleUpdateDiscount(d.id, 'actualPct', e.target.value)} className="w-20 text-center border border-blue/30 rounded-xl p-3 font-bold text-navy bg-sand/20 outline-none focus:ring-2 focus:ring-gold" />
+                                                    </td>
+                                                    <td className={`p-4 text-center relative ${isZeroAndPromoOn ? 'blur-[2px] opacity-40 pointer-events-none' : ''}`}>
+                                                        <input type="number" defaultValue={d.qtyActual} onBlur={(e) => handleUpdateDiscount(d.id, 'qtyActual', e.target.value)} className={`w-full text-center border-2 rounded-xl p-3 font-bold text-lg outline-none focus:ring-2 ${needUpdate ? 'border-red/50 bg-red/10 text-darkred' : d.qtyActual == 0 ? 'border-sand bg-sand/50 text-navy/30' : 'border-green/50 bg-green/10 text-green'}`} placeholder="Nhập..." />
+                                                        {d.needsDailyUpdate && d.qtyActual !== '' && <p className="absolute left-0 w-full text-[10px] text-red mt-1 font-bold text-center">Xác nhận lại hôm nay</p>}
+                                                    </td>
+                                                    <td className="p-4 text-center relative z-20">
+                                                        <div className="flex flex-col items-center justify-center gap-3">
+                                                            <div>
+                                                                <button onClick={() => handleUpdateDiscount(d.id, 'isPromoApplied', !d.isPromoApplied)} className={`w-12 h-6 rounded-full relative transition-colors duration-300 mx-auto block ${d.isPromoApplied ? 'bg-green' : 'bg-slate/30'} ${isZeroAndPromoOn ? 'ring-4 ring-red/50 shadow-lg' : ''}`}>
+                                                                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform duration-300 shadow-sm ${d.isPromoApplied ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                                                                </button>
+                                                                <span className={`text-[10px] font-bold mt-2 block ${d.isPromoApplied ? 'text-green' : 'text-slate/50'}`}>{d.isPromoApplied ? 'Đã chạy' : 'Chưa chạy'}</span>
+                                                            </div>
+                                                            <button onClick={() => confirmDelete(d.id, d.name, 'discount')} className="bg-red/10 text-red hover:bg-red hover:text-white p-1.5 rounded-lg transition-colors border border-red/20" title="Xóa dữ liệu">
+                                                                <Icon name="trash-2" className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        {/* KHU 2: ĐỔI TRẢ */}
                         <div className={`bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden ${lockClass}`}>
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
                                 <h2 className="font-semibold flex items-center"><Icon name="refresh-ccw" className="mr-3 text-gold" /> QUẢN LÝ ĐỔI TRẢ</h2>
@@ -749,7 +790,7 @@
                                                         <td className="p-4 text-right">
                                                             <div className="flex items-center justify-end gap-2">
                                                                 <input type="text" placeholder="Ghi chú..." defaultValue={r.note} className="border border-blue/20 bg-white rounded-lg px-3 py-2 text-xs w-full max-w-[120px] outline-none" />
-                                                                <button onClick={() => handleDeleteReturn(r.id, r.name)} className="bg-red/10 text-red hover:bg-red hover:text-white p-2 rounded-lg transition-colors border border-red/20" title="Xóa dữ liệu">
+                                                                <button onClick={() => confirmDelete(r.id, r.name, 'return')} className="bg-red/10 text-red hover:bg-red hover:text-white p-2 rounded-lg transition-colors border border-red/20" title="Xóa dữ liệu">
                                                                     <Icon name="trash-2" className="w-4 h-4" />
                                                                 </button>
                                                             </div>
@@ -763,7 +804,6 @@
                             </div>
                         </div>
 
-                        {/* KHU 3: XỬ LÝ ĐẶT HÀNG */}
                         <div className={`bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden ${lockClass}`}>
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
                                 <h2 className="font-semibold flex items-center"><Icon name="shopping-cart" className="mr-3 text-gold" /> XỬ LÝ ĐẶT HÀNG</h2>
@@ -786,7 +826,7 @@
                                     <div className="w-px bg-sand mx-1 shrink-0"></div>
                                     
                                     <button onClick={() => setActiveOrderNppTab('ARCHIVE')} className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border-2 border-dashed ${activeOrderNppTab === 'ARCHIVE' ? 'bg-navy text-sand border-navy' : 'bg-white text-slate border-slate/30'}`}>
-                                        <Icon name="archive" className="w-3 h-3" /> LƯU TRỮ
+                                        LƯU TRỮ
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === 'ARCHIVE' ? 'bg-gold text-navy' : 'bg-slate/10 text-slate'}`}>{archivedOrders.length}</span>
                                     </button>
                                 </div>
@@ -886,7 +926,6 @@
             const [activeTab, setActiveTab] = useState('candate');
             const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
             
-            // XÓA BỎ LOCALSTORAGE Ở PREVIEW ĐỂ KHÔNG BỊ CRASH IFRAME (CHẠY BẰNG RAM TRÊN CANVAS)
             const [syncQueue, setSyncQueue] = useState([]);
             const [syncTotal, setSyncTotal] = useState(0);
             const [syncProcessed, setSyncProcessed] = useState(0);
