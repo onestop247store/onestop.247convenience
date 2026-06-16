@@ -28,7 +28,6 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
@@ -47,6 +46,9 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        // ==========================================
+        // CẤU HÌNH API
+        // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec"; 
         const IMGBB_API_KEY = "3181c25975e5fa84efc4d94d859a5783"; 
         
@@ -121,11 +123,7 @@
 
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
-                const html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader",
-                    { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.0 },
-                    false
-                );
+                const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.0 }, false);
                 html5QrcodeScanner.render((decodedText) => {
                     html5QrcodeScanner.clear();
                     onScanSuccess(decodedText);
@@ -151,29 +149,30 @@
             const cx = 100; const cy = 90; const r = 75; const strokeWidth = 24;
             const circumference = Math.PI * r;
             const strokeDashoffset = circumference - (percentage * circumference);
+            
+            let bgClass = "bg-white";
+            if(color === "#F0573A") bgClass = "bg-red/10";
+            if(color === "#103F67") bgClass = "bg-navy/10";
+            if(color === "#DAAF4F") bgClass = "bg-gold/20";
 
             return (
-                <div className="flex flex-col items-center p-6 rounded-3xl shadow-sm border border-navy/5 relative overflow-hidden bg-white transition-all hover:shadow-md">
-                    {/* Lớp phủ màu mỏng (8%) trên nền trắng tinh khiết giúp màu sắc trong trẻo, không bị đục */}
-                    <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundColor: color }}></div>
-                    
-                    <div className="w-full text-center mb-6 relative z-10">
-                        <span className="font-extrabold uppercase tracking-wider text-sm block mb-1" style={{ color: color }}>{label}</span>
-                        <span className="text-4xl font-black text-navy">{max}</span>
+                <div className={`flex flex-col items-center p-6 rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5 ${bgClass}`}>
+                    <div className="w-full text-center mb-6">
+                        <span className="text-navy font-extrabold uppercase tracking-wider text-sm block mb-1">{label}</span>
+                        <span className="text-3xl font-extrabold text-navy">{max}</span>
                     </div>
-                    <div className="relative w-56 h-32 overflow-hidden flex justify-center z-10">
+                    <div className="relative w-56 h-32 overflow-hidden flex justify-center">
                         <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 200 100">
-                            {/* Thanh xám lót nền sáng hơn để tạo độ tương phản */}
-                            <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="#F3F4F6" strokeWidth={strokeWidth} strokeLinecap="round" />
+                            <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="#D1D5DB" strokeWidth={strokeWidth} strokeLinecap="round" />
                             <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000 ease-out" />
                         </svg>
                         <div className="absolute bottom-1 flex flex-col items-center">
-                            <span className="text-2xl font-bold" style={{ color: color }}>{Math.round(percentage * 100)}%</span>
+                            <span className="text-xl font-bold" style={{ color: color }}>{Math.round(percentage * 100)}%</span>
                         </div>
                     </div>
-                    <div className="w-full mt-2 pt-4 border-t border-navy/10 relative z-10">
-                        <p className="text-center text-[11px] font-extrabold text-navy/50 uppercase tracking-widest mb-2">TIẾN ĐỘ HOÀN THÀNH</p>
-                        <div className="flex justify-between text-xs font-bold text-navy/70">
+                    <div className="w-full mt-2 pt-4 border-t border-navy/10">
+                        <p className="text-center text-xs font-bold text-navy/70 uppercase tracking-wide mb-2">Tiến độ hoàn thành</p>
+                        <div className="flex justify-between text-xs font-medium text-navy/80">
                             <span>{subLabelLeft}</span>
                             <span>{subLabelRight}</span>
                         </div>
@@ -191,6 +190,13 @@
             return '60 ngày';
         };
 
+        // --- COMPONENT AVATAR NHỎ TRONG BẢNG ---
+        const ProductAvatar = ({ url }) => {
+            if (url) return <img src={url} className="w-8 h-8 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0" />;
+            return <div className="w-8 h-8 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-4 h-4 text-slate/40" /></div>;
+        };
+
+        // --- VIEW 1 & VIEW 2 (GIỮ NGUYÊN) ---
         const ViewCanDate = ({ addToSyncQueue }) => {
             const [barcode, setBarcode] = useState('');
             const [product, setProduct] = useState(null);
@@ -202,10 +208,7 @@
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => {
-                setMsg({ text, type });
-                setTimeout(() => setMsg({ text: '', type: '' }), 3000);
-            };
+            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const fetchProductData = async (codeToFetch) => {
                 if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
@@ -215,34 +218,20 @@
                     const data = await response.json();
                     if(data.found) { setProduct(data); setNpp(data.npp); } 
                     else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
-                } catch (error) {
-                    showMsg("Lỗi kết nối máy chủ!");
-                } finally { setIsLoading(false); }
-            };
-
-            const handleScanSuccess = (decodedText) => {
-                setBarcode(decodedText);
-                setIsScanning(false);
-                fetchProductData(decodedText);
+                } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
             };
 
             const handleSubmit = () => {
                 if(!product || !qty || !expDate || !action) return showMsg("Vui lòng điền đủ thông tin!");
                 if(action === 'doitra' && !npp) return showMsg("Vui lòng chọn NPP đổi trả!");
-                
-                const payload = {
-                    action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, 
-                    expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp
-                };
-
-                addToSyncQueue(payload);
+                addToSyncQueue({ action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp });
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 setBarcode(''); setProduct(null); setQty(''); setExpDate(''); setAction(''); setNpp('');
             };
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
-                    {isScanning && <BarcodeScanner onScanSuccess={handleScanSuccess} onClose={() => setIsScanning(false)} />}
+                    {isScanning && <BarcodeScanner onScanSuccess={(t) => {setBarcode(t); setIsScanning(false); fetchProductData(t);}} onClose={() => setIsScanning(false)} />}
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6 relative z-10">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
@@ -261,15 +250,7 @@
                             
                             {product && (
                                 <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4 animate-in fade-in">
-                                    {product.imageUrl ? (
-                                        <div className="w-12 h-12 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                                            <img src={product.imageUrl} className="w-full h-full object-cover" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-gold shrink-0 shadow-sm">
-                                            <Icon name="package-search" />
-                                        </div>
-                                    )}
+                                    <ProductAvatar url={product.imageUrl} />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[11px] font-semibold text-navy/50 uppercase">Sản phẩm</p>
                                         <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
@@ -325,19 +306,12 @@
             const [qty, setQty] = useState('');
             const [npp, setNpp] = useState('');
             const [isNewModel, setIsNewModel] = useState(false);
-            
-            const [localBase64Preview, setLocalBase64Preview] = useState('');
-            const [cloudImageUrl, setCloudImageUrl] = useState('');
-            const [isUploadingCloud, setIsUploadingCloud] = useState(false);
-            
+            const [imgBase64, setImgBase64] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => {
-                setMsg({ text, type });
-                setTimeout(() => setMsg({ text: '', type: '' }), 3000);
-            };
+            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const fetchProductData = async (codeToFetch) => {
                 if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
@@ -345,65 +319,23 @@
                 try {
                     const response = await fetch(`${API_URL}?action=scan&barcode=${codeToFetch}`);
                     const data = await response.json();
-                    
                     if (locallyUploadedImages[codeToFetch]) data.hasImage = true;
-
-                    if(data.found) { setProduct(data); setNpp(data.npp); } 
-                    else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
-                } catch (error) {
-                    showMsg("Lỗi kết nối máy chủ!");
-                } finally { setIsLoading(false); }
-            };
-
-            const handleScanSuccess = (decodedText) => {
-                setBarcode(decodedText);
-                setIsScanning(false);
-                fetchProductData(decodedText);
+                    if(data.found) { setProduct(data); setNpp(data.npp); } else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
+                } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
             };
 
             const handleImageUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
+                    const reader = new FileReader(); reader.readAsDataURL(file);
                     reader.onload = (event) => {
-                        const img = new Image();
-                        img.src = event.target.result;
+                        const img = new Image(); img.src = event.target.result;
                         img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 600; 
-                            let width = img.width;
-                            let height = img.height;
-                            if (width > MAX_WIDTH) {
-                                height = Math.round((height * MAX_WIDTH) / width);
-                                width = MAX_WIDTH;
-                            }
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
-
-                            const base64Data = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-                            setLocalBase64Preview(base64Data);
-                            
-                            setIsUploadingCloud(true);
-                            const formData = new FormData();
-                            formData.append("image", base64Data);
-
-                            fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(res => res.json())
-                            .then(result => {
-                                if(result.success) {
-                                    setCloudImageUrl(result.data.url);
-                                } else {
-                                    showMsg("Lỗi dịch vụ ảnh cloud!");
-                                }
-                            })
-                            .catch(err => showMsg("Lỗi kết nối khi tải ảnh!"))
-                            .finally(() => setIsUploadingCloud(false));
+                            const canvas = document.createElement('canvas'); const MAX_WIDTH = 600; 
+                            let width = img.width; let height = img.height;
+                            if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+                            canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                            setImgBase64(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
                         };
                     };
                 }
@@ -411,60 +343,32 @@
 
             const handleSubmit = () => {
                 if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
-                if(isUploadingCloud) return showMsg("Vui lòng chờ ảnh tải lên xong!", "warning");
-                
-                const payload = { 
-                    action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp,
-                    imageUrlToUpdate: cloudImageUrl, isNewModel: isNewModel
-                };
-                
-                addToSyncQueue(payload);
+                addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp, imageBase64: imgBase64, isNewModel: isNewModel });
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
-                
-                if (cloudImageUrl || isNewModel) {
-                    setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
-                }
-
-                setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); 
-                setLocalBase64Preview(''); setCloudImageUrl('');
+                if (imgBase64 || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
+                setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setImgBase64('');
             };
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
-                    {isScanning && <BarcodeScanner onScanSuccess={handleScanSuccess} onClose={() => setIsScanning(false)} />}
+                    {isScanning && <BarcodeScanner onScanSuccess={(t) => {setBarcode(t); setIsScanning(false); fetchProductData(t);}} onClose={() => setIsScanning(false)} />}
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6 relative z-10">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
                             <span className="bg-blue/20 p-2 rounded-xl mr-3 text-blue"><Icon name="shopping-cart" /></span> Yêu Cầu Đặt Hàng
                         </h2>
-
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Mã Barcode</label>
                                 <div className="flex gap-2">
                                     <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} onBlur={() => barcode && fetchProductData(barcode)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
-                                    <button onClick={() => setIsScanning(true)} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14">
-                                        {isLoading ? "..." : <Icon name="scan-line" />}
-                                    </button>
+                                    <button onClick={() => setIsScanning(true)} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14"><Icon name="scan-line" /></button>
                                 </div>
                             </div>
 
                             {product && (
                                 <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex gap-4 items-center animate-in fade-in">
-                                    {localBase64Preview ? (
-                                        <div className="w-16 h-16 rounded-xl border border-green overflow-hidden shrink-0 flex items-center justify-center bg-white shadow-sm">
-                                            <img src={`data:image/jpeg;base64,${localBase64Preview}`} className="w-full h-full object-cover" />
-                                        </div>
-                                    ) : product.imageUrl ? (
-                                        <div className="w-16 h-16 bg-white rounded-xl border border-blue/30 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                                            <img src={product.imageUrl} className="w-full h-full object-cover" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-16 h-16 bg-navy/5 rounded-xl border border-navy/10 flex flex-col items-center justify-center shrink-0 text-navy/50 shadow-sm">
-                                            <Icon name="image" className="w-5 h-5" />
-                                            <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Chưa Có</span>
-                                        </div>
-                                    )}
+                                    {imgBase64 ? <ProductAvatar url={`data:image/jpeg;base64,${imgBase64}`} /> : <ProductAvatar url={product.imageUrl} />}
                                     <div className="flex-1 min-w-0">
                                         <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
                                         <p className="text-xs text-slate mt-1 flex items-center gap-1 truncate"><Icon name="map-pin" className="w-3 h-3 flex-shrink-0" /> {product.npp}</p>
@@ -488,50 +392,28 @@
 
                             {product && (
                                 <div className={`p-5 rounded-2xl border ${product.hasImage === false ? 'border-red/30 bg-red/5' : 'border-blue/20 bg-sand/10'}`}>
-                                    <div className="mb-4">
-                                        <p className="text-sm font-bold text-navy">Hình ảnh sản phẩm</p>
-                                        <p className="text-xs text-slate mt-1">Tùy chọn tải ảnh mới để cập nhật bao bì cho hệ thống.</p>
-                                    </div>
-                                    
                                     <label className="flex items-center gap-3 mb-4 cursor-pointer">
                                         <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded border-blue/50" />
                                         <span className="text-sm text-navy font-semibold">Tải lên / Cập nhật ảnh</span>
                                     </label>
-
                                     {(product.hasImage === false || isNewModel) && (
-                                        <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-navy hover:bg-navy/5 transition-all relative overflow-hidden">
+                                        <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-navy/5 transition-all">
                                             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                            
-                                            {isUploadingCloud ? (
-                                                <div className="flex flex-col items-center text-blue relative z-10">
-                                                    <Icon name="loader-2" className="w-10 h-10 mb-2 animate-spin" />
-                                                    <span className="text-sm font-bold text-center">Đang tải lên Cloud...</span>
-                                                </div>
-                                            ) : cloudImageUrl ? (
-                                                <div className="flex flex-col items-center text-green relative z-10">
-                                                    <Icon name="check-circle-2" className="w-10 h-10 mb-2" />
-                                                    <span className="text-sm font-bold text-center">Đã lưu trữ ảnh!<br/>Sẵn sàng để gửi</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center relative z-10">
-                                                    <div className="w-12 h-12 bg-sand/50 rounded-full flex items-center justify-center mb-3 text-navy"><Icon name="upload-cloud" /></div>
-                                                    <span className="text-sm text-navy font-semibold text-center">Bấm để chụp ảnh<br/>hoặc chọn từ Thư viện</span>
-                                                </div>
-                                            )}
+                                            <Icon name="upload-cloud" className="mb-2 text-navy" />
+                                            <span className="text-sm font-bold">Chụp ảnh mới</span>
                                         </label>
                                     )}
                                 </div>
                             )}
 
-                            <button onClick={handleSubmit} disabled={isUploadingCloud} className={`w-full hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center ${isUploadingCloud ? 'bg-slate/50 cursor-not-allowed' : 'bg-navy'}`}>
-                                GỬI YÊU CẦU
-                            </button>
+                            <button onClick={handleSubmit} className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center">GỬI YÊU CẦU</button>
                         </div>
                     </div>
                 </div>
             );
         };
 
+        // --- VIEW 3: DASHBOARD (HOÀN TOÀN MỚI) ---
         const ViewDashboard = ({ addToSyncQueue }) => {
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [password, setPassword] = useState('');
@@ -540,15 +422,13 @@
             const [returns, setReturns] = useState([]);
             const [discounts, setDiscounts] = useState([]);
             const [orders, setOrders] = useState([]);
-            const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
+            const [archivedOrders, setArchivedOrders] = useState([]); // State Lưu Trữ Đơn Hàng
+
             const [isLoading, setIsLoading] = useState(false);
             const [apiError, setApiError] = useState('');
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => {
-                setMsg({ text, type });
-                setTimeout(() => setMsg({ text: '', type: '' }), 3000);
-            };
+            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const [activeOrderNppTab, setActiveOrderNppTab] = useState('');
             const [activeReturnTimeTab, setActiveReturnTimeTab] = useState('0 ngày');
@@ -561,55 +441,50 @@
                     const result = await response.json();
                     
                     if (result.error) {
-                        setApiError(`Lỗi từ Google Sheets: ${result.error}`);
+                        setApiError(`Lỗi API: ${result.error}`);
                     } else if (result.returns) {
                         setReturns(result.returns);
                         setDiscounts(result.discounts);
-                        setOrders(result.orders);
+                        setOrders(result.orders.filter(o => o.status === 'Đang chờ'));
+                        setArchivedOrders(result.orders.filter(o => o.status === 'Đã chốt'));
                     }
-                } catch (error) {
-                    setApiError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại link API.");
-                } finally {
-                    setIsLoading(false);
-                }
+                } catch (error) { setApiError("Lỗi kết nối máy chủ."); } finally { setIsLoading(false); }
             };
-
-            const handleRefresh = () => {
-                fetchDashboardData();
-                showMsg("Đã làm mới dữ liệu!", "success");
-            }
 
             useEffect(() => {
                 if (!isAuthenticated) return;
                 fetchDashboardData();
-                const interval = setInterval(() => {
-                    fetchDashboardData();
-                }, 180000); 
+                const interval = setInterval(fetchDashboardData, 180000); 
                 return () => clearInterval(interval);
             }, [isAuthenticated]);
 
+            // --- LỌC ĐƠN ĐẶT HÀNG & SORT THÔNG MINH ---
             const groupedOrders = orders.reduce((acc, order) => {
                 if (!acc[order.npp]) acc[order.npp] = [];
                 acc[order.npp].push(order);
                 return acc;
             }, {});
 
-            useEffect(() => {
-                const activeOrderNpps = Object.keys(groupedOrders);
-                if (activeOrderNpps.length > 0 && !activeOrderNpps.includes(activeOrderNppTab)) {
-                    setActiveOrderNppTab(activeOrderNpps[0]);
-                }
-            }, [orders]);
+            // Sort NPP Tabs: Ai có đơn chờ lâu nhất thì xếp lên đầu
+            const sortedNppOrderTabs = Object.keys(groupedOrders).map(npp => ({
+                npp, maxWait: Math.max(...groupedOrders[npp].map(o => o.hoursWait))
+            })).sort((a, b) => b.maxWait - a.maxWait).map(x => x.npp);
 
+            useEffect(() => {
+                if (sortedNppOrderTabs.length > 0 && !sortedNppOrderTabs.includes(activeOrderNppTab) && activeOrderNppTab !== 'ARCHIVE') {
+                    setActiveOrderNppTab(sortedNppOrderTabs[0]);
+                } else if (sortedNppOrderTabs.length === 0 && archivedOrders.length > 0) {
+                    setActiveOrderNppTab('ARCHIVE');
+                }
+            }, [orders, archivedOrders]);
+
+            // --- LỌC ĐỔI TRẢ ---
             useEffect(() => {
                 if (returns.length > 0) {
                    const availableBuckets = returns.map(r => getExpBucket(r.daysLeft));
                    if (!availableBuckets.includes(activeReturnTimeTab)) {
                        for (let i = TIME_BUCKETS.length - 1; i >= 0; i--) {
-                           if (availableBuckets.includes(TIME_BUCKETS[i])) {
-                               setActiveReturnTimeTab(TIME_BUCKETS[i]);
-                               break;
-                           }
+                           if (availableBuckets.includes(TIME_BUCKETS[i])) { setActiveReturnTimeTab(TIME_BUCKETS[i]); break; }
                        }
                    }
                 }
@@ -617,70 +492,66 @@
 
             const filteredReturns = returns.filter(r => getExpBucket(r.daysLeft) === activeReturnTimeTab);
             const groupedReturns = filteredReturns.reduce((acc, ret) => {
-                if (!acc[ret.npp]) acc[ret.npp] = [];
-                acc[ret.npp].push(ret);
-                return acc;
+                if (!acc[ret.npp]) acc[ret.npp] = []; acc[ret.npp].push(ret); return acc;
             }, {});
 
             useEffect(() => {
                 const activeReturnNpps = Object.keys(groupedReturns);
                 if (activeReturnNpps.length > 0 && !activeReturnNpps.includes(activeReturnNppTab)) {
                     setActiveReturnNppTab(activeReturnNpps[0]);
-                } else if (activeReturnNpps.length === 0) {
-                    setActiveReturnNppTab('');
-                }
+                } else if (activeReturnNpps.length === 0) { setActiveReturnNppTab(''); }
             }, [filteredReturns]);
 
-            const handleLogin = (e) => {
-                e.preventDefault();
-                if (password === '56789') {
-                    setIsAuthenticated(true);
-                    setLoginError('');
-                } else {
-                    setLoginError('Mã PIN không chính xác!');
-                }
-            };
-
-            const getWaitAlert = (hours) => {
-                if (hours < 12) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn' };
-                if (hours < 24) return { bg: 'bg-gold/15', text: 'text-darkred', border: 'border-gold/30', icon: '⏱️ Chú ý' };
-                if (hours < 36) return { bg: 'bg-red/15', text: 'text-darkred', border: 'border-red/30', icon: '⚠️ Trễ' };
-                return { bg: 'bg-darkred/10', text: 'text-darkred', border: 'border-darkred/30 animate-pulse', icon: '🚨 Khẩn' };
-            };
-
+            // --- HÀM XỬ LÝ (ACTIONS) ---
             const handleReturnStatus = (id, newStatus) => {
                 setReturns(returns.map(r => r.id === id ? { ...r, status: newStatus } : r));
                 addToSyncQueue({ action: "updateReturnStatus", id: id, status: newStatus });
-                showMsg("Đã lưu tạm! Đang đồng bộ trạng thái...", "success");
+            };
+
+            const handleDeleteReturn = (id, productName) => {
+                if(window.confirm(`XÓA VĨNH VIỄN: Bạn có chắc chắn muốn xóa "${productName}" khỏi danh sách đổi trả? Thao tác này sẽ xóa dữ liệu trên Google Sheets.`)) {
+                    setReturns(returns.filter(r => r.id !== id));
+                    addToSyncQueue({ action: "deleteReturn", id: id });
+                    showMsg("Đã xóa. Đang đồng bộ...", "success");
+                }
             };
             
             const handleCloseOrders = (nppName) => {
+                const ordersToArchive = orders.filter(o => o.npp === nppName).map(o => ({...o, status: 'Đã chốt'}));
                 setOrders(orders.filter(o => o.npp !== nppName));
-                setCompletedOrdersCount(prev => prev + 1);
+                setArchivedOrders([...ordersToArchive, ...archivedOrders]);
                 addToSyncQueue({ action: "completeOrderNpp", npp: nppName });
-                showMsg(`Đã lưu chốt đơn ${nppName}! Đang đồng bộ...`, "success");
+                showMsg(`Đã chuyển đơn ${nppName} vào Lưu Trữ!`, "success");
+            };
+
+            const handleOrderQtyChange = (id, newQty, oldQty) => {
+                if (newQty && newQty !== oldQty) {
+                    setOrders(orders.map(o => o.id === id ? { ...o, qty: newQty, isEdited: true } : o));
+                    addToSyncQueue({ action: "updateOrderQty", id: id, qty: newQty });
+                }
             };
 
             const handleUpdateDiscount = (id, field, value) => {
                  setDiscounts(prev => prev.map(d => d.id === id ? { ...d, [field]: value, needsDailyUpdate: false } : d));
                  const currentItem = discounts.find(d => d.id === id);
                  const payloadToSync = { ...currentItem, [field]: value };
-                 addToSyncQueue({
-                     action: "updateDiscountRecord", id: id, qtyActual: payloadToSync.qtyActual,
-                     actualPct: payloadToSync.actualPct, isPromoApplied: payloadToSync.isPromoApplied
-                 });
+                 addToSyncQueue({ action: "updateDiscountRecord", id: id, qtyActual: payloadToSync.qtyActual, actualPct: payloadToSync.actualPct, isPromoApplied: payloadToSync.isPromoApplied });
             };
 
+            // UI Helpers
+            const getWaitAlert = (hours) => {
+                if (hours <= 8) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn', pulse: '' };
+                if (hours <= 16) return { bg: 'bg-gold/20', text: 'text-darkred', border: 'border-gold/50', icon: '⏱️ Chú ý', pulse: '' };
+                if (hours <= 24) return { bg: 'bg-red/10', text: 'text-red', border: 'border-red/50', icon: '⚠️ Trễ hạn', pulse: '' };
+                return { bg: 'bg-darkred', text: 'text-white', border: 'border-darkred', icon: '🚨 KHẨN CẤP', pulse: 'animate-pulse shadow-[0_0_15px_rgba(185,32,37,0.5)]' };
+            };
+
+            // Stats
             const totalReturns = returns.length;
             const pendingReturns = returns.filter(r => r.status === 'Chờ xử lý').length;
-            const processedReturns = totalReturns - pendingReturns;
-
             const totalDiscounts = discounts.length;
             const pendingDiscounts = discounts.filter(d => d.qtyActual === '' || d.needsDailyUpdate).length;
-            const processedDiscounts = totalDiscounts - pendingDiscounts;
-
-            const pendingOrders = Object.keys(groupedOrders).length;
-            const totalOrders = pendingOrders + completedOrdersCount;
+            const pendingOrdersCount = Object.keys(groupedOrders).length;
 
             const isDiscountPending = discounts.some(d => d.qtyActual === '' || d.needsDailyUpdate);
 
@@ -689,25 +560,19 @@
                     <div className="max-w-md mx-auto pt-32 px-4 min-h-screen flex flex-col items-center">
                         <div className="bg-white p-8 rounded-3xl shadow-sm border border-navy/5 w-full text-center relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
-                            <div className="w-16 h-16 bg-navy/5 text-navy rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Icon name="lock" className="w-8 h-8" />
-                            </div>
+                            <div className="w-16 h-16 bg-navy/5 text-navy rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="lock" className="w-8 h-8" /></div>
                             <h2 className="text-2xl font-bold text-navy mb-2">Khu Vực Quản Lý</h2>
-                            <p className="text-slate text-sm mb-6">Vui lòng nhập mã PIN để truy cập Dashboard</p>
-                            <form onSubmit={handleLogin} className="space-y-4">
-                                <div>
-                                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="• • • • •" className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-center text-navy font-bold tracking-[0.5em] text-xl outline-none focus:ring-2 focus:ring-blue transition-all" />
-                                </div>
+                            <form onSubmit={(e) => { e.preventDefault(); password === '56789' ? setIsAuthenticated(true) : setLoginError('Sai PIN'); }} className="space-y-4">
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="• • • • •" className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-center text-navy font-bold tracking-[0.5em] text-xl outline-none focus:ring-2 focus:ring-blue" />
                                 {loginError && <p className="text-red text-sm font-semibold">{loginError}</p>}
-                                <button type="submit" className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl transition-all shadow-md">XÁC NHẬN</button>
+                                <button type="submit" className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl shadow-md">XÁC NHẬN</button>
                             </form>
                         </div>
                     </div>
                 );
             }
 
-            if(isLoading && discounts.length === 0) return <div className="h-screen flex flex-col items-center justify-center text-navy font-bold text-lg"><Icon name="loader-2" className="animate-spin w-10 h-10 mb-4 text-gold" />Đang tải dữ liệu...</div>;
-
+            if(isLoading && discounts.length === 0) return <div className="h-screen flex items-center justify-center text-navy font-bold text-lg"><Icon name="loader-2" className="animate-spin mr-2 text-gold" /> Đang tải...</div>;
             const lockClass = isDiscountPending ? "opacity-30 pointer-events-none grayscale blur-[1px] transition-all duration-500" : "transition-all duration-500";
 
             return (
@@ -718,18 +583,10 @@
                             <h1 className="text-3xl font-bold text-navy tracking-tight">ONE STOP <span className="font-light">| Operations</span></h1>
                             <p className="text-slate mt-1 font-medium">Trung tâm điều hành cửa hàng</p>
                         </div>
-                        <button onClick={handleRefresh} className="bg-white p-3 rounded-full shadow-sm text-navy hover:bg-sand/50 transition-all flex items-center gap-2">
-                            <Icon name="refresh-cw" className={`w-5 h-5 ${isLoading ? 'animate-spin text-gold' : ''}`} />
-                            <span className="text-sm font-bold hidden md:inline">Làm mới</span>
+                        <button onClick={() => { fetchDashboardData(); showMsg("Đã làm mới!", "success"); }} className="bg-white p-3 rounded-full shadow-sm text-navy hover:bg-sand/50 transition-all flex items-center gap-2">
+                            <Icon name="refresh-cw" className={`w-5 h-5 ${isLoading ? 'animate-spin text-gold' : ''}`} /><span className="text-sm font-bold hidden md:inline">Làm mới</span>
                         </button>
                     </div>
-
-                    {apiError && (
-                        <div className="mb-6 p-4 bg-red/10 border border-red/30 rounded-2xl text-darkred font-medium flex items-center">
-                            <Icon name="alert-triangle" className="mr-3" />
-                            {apiError}
-                        </div>
-                    )}
 
                     {isDiscountPending && (
                         <div className="mb-6 p-4 bg-gold/20 border border-gold/50 rounded-2xl text-navy font-bold flex items-start shadow-md animate-pulse">
@@ -742,9 +599,9 @@
                     )}
 
                     <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 ${lockClass}`}>
-                        <GaugeChart value={processedDiscounts} max={totalDiscounts} label="XỬ LÝ CẬN DATE & GIẢM GIÁ" subLabelLeft={`Đã KT: ${processedDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color="#F0573A" />
+                        <GaugeChart value={totalDiscounts - pendingDiscounts} max={totalDiscounts} label="XỬ LÝ CẬN DATE & GIẢM GIÁ" subLabelLeft={`Đã KT: ${totalDiscounts - pendingDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color="#F0573A" />
                         <GaugeChart value={processedReturns} max={totalReturns} label="YÊU CẦU ĐỔI TRẢ" subLabelLeft={`Đã xử lý: ${processedReturns}`} subLabelRight={`Chờ: ${pendingReturns}`} color="#103F67" />
-                        <GaugeChart value={completedOrdersCount} max={totalOrders} label="XỬ LÝ ĐẶT HÀNG" subLabelLeft={`Đã chốt: ${completedOrdersCount}`} subLabelRight={`Đang chờ: ${pendingOrders}`} color="#DAAF4F" />
+                        <GaugeChart value={archivedOrders.length} max={orders.length + archivedOrders.length} label="XỬ LÝ ĐẶT HÀNG" subLabelLeft={`Đã chốt: ${archivedOrders.length}`} subLabelRight={`Đang chờ: ${pendingOrdersCount}`} color="#DAAF4F" />
                     </div>
 
                     <div className="space-y-10">
@@ -766,50 +623,29 @@
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sand/50">
-                                        {discounts.length === 0 && (
-                                            <tr><td colSpan="5" className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Cận Date & Giảm Giá (Từ 35 ngày trở xuống)</td></tr>
-                                        )}
                                         {discounts.map(d => (
                                             <tr key={d.id} className={`hover:bg-sand/10 transition-colors ${(d.qtyActual === '' || d.needsDailyUpdate) ? 'bg-red/5' : ''}`}>
-                                                <td className="p-4">
-                                                    <p className="font-bold text-navy text-base">{d.name}</p>
-                                                    <p className="text-xs font-mono text-slate/70 mt-1">SKU: {d.barcode || 'N/A'}</p>
-                                                    <p className="text-sm font-medium text-red mt-1">Còn {d.daysLeft} ngày <span className="text-blue mx-2">|</span> Số lượng tồn: {d.qtyOriginal}</p>
+                                                <td className="p-4 flex items-center gap-3">
+                                                    <ProductAvatar url={d.imageUrl} />
+                                                    <div>
+                                                        <p className="font-bold text-navy text-base">{d.name}</p>
+                                                        <p className="text-xs font-mono text-slate/70 mt-0.5">SKU: {d.barcode}</p>
+                                                        <p className="text-sm font-medium text-red mt-0.5">Còn {d.daysLeft} ngày <span className="text-blue mx-2">|</span> Số lượng tồn: {d.qtyOriginal}</p>
+                                                    </div>
                                                 </td>
                                                 <td className="p-4 text-center font-bold text-slate/40 text-lg">{d.suggestPct}%</td>
                                                 <td className="p-4 text-center">
-                                                    <input 
-                                                        type="number" 
-                                                        value={d.actualPct} 
-                                                        onChange={(e) => setDiscounts(prev => prev.map(item => item.id === d.id ? {...item, actualPct: e.target.value} : item))}
-                                                        onBlur={(e) => handleUpdateDiscount(d.id, 'actualPct', e.target.value)}
-                                                        className="w-20 text-center border border-blue/30 rounded-xl p-3 font-bold text-navy bg-sand/20 outline-none focus:ring-2 focus:ring-gold" 
-                                                    />
+                                                    <input type="number" defaultValue={d.actualPct} onBlur={(e) => handleUpdateDiscount(d.id, 'actualPct', e.target.value)} className="w-20 text-center border border-blue/30 rounded-xl p-3 font-bold text-navy bg-sand/20 outline-none focus:ring-2 focus:ring-gold" />
                                                 </td>
                                                 <td className="p-4 text-center relative">
-                                                    <input 
-                                                        type="number" 
-                                                        value={d.qtyActual} 
-                                                        onChange={(e) => setDiscounts(prev => prev.map(item => item.id === d.id ? {...item, qtyActual: e.target.value} : item))}
-                                                        onBlur={(e) => handleUpdateDiscount(d.id, 'qtyActual', e.target.value)}
-                                                        className={`w-full text-center border-2 rounded-xl p-3 font-bold text-lg outline-none focus:ring-2
-                                                            ${(d.qtyActual === '' || d.needsDailyUpdate) ? 'border-red/50 bg-red/10 text-darkred focus:ring-red' : 
-                                                              d.qtyActual == 0 ? 'border-sand bg-sand/50 text-navy/30' : 'border-green/50 bg-green/10 text-green focus:ring-green'}`} 
-                                                        placeholder="Nhập..." 
-                                                    />
+                                                    <input type="number" defaultValue={d.qtyActual} onBlur={(e) => handleUpdateDiscount(d.id, 'qtyActual', e.target.value)} className={`w-full text-center border-2 rounded-xl p-3 font-bold text-lg outline-none focus:ring-2 ${(d.qtyActual === '' || d.needsDailyUpdate) ? 'border-red/50 bg-red/10 text-darkred' : d.qtyActual == 0 ? 'border-sand bg-sand/50 text-navy/30' : 'border-green/50 bg-green/10 text-green'}`} placeholder="Nhập..." />
                                                     {d.needsDailyUpdate && d.qtyActual !== '' && <p className="absolute left-0 w-full text-[10px] text-red mt-1 font-bold text-center">Xác nhận lại hôm nay</p>}
-                                                    {d.qtyActual == 0 && d.qtyActual !== '' && !d.needsDailyUpdate && <p className="absolute left-0 w-full text-[10px] text-darkred mt-1 font-bold text-center">ĐÃ HẾT! TẮT POS</p>}
                                                 </td>
                                                 <td className="p-4 text-center">
-                                                    <button 
-                                                        onClick={() => handleUpdateDiscount(d.id, 'isPromoApplied', !d.isPromoApplied)}
-                                                        className={`w-12 h-6 rounded-full relative transition-colors duration-300 mx-auto block ${d.isPromoApplied ? 'bg-green' : 'bg-slate/30'}`}
-                                                    >
+                                                    <button onClick={() => handleUpdateDiscount(d.id, 'isPromoApplied', !d.isPromoApplied)} className={`w-12 h-6 rounded-full relative transition-colors duration-300 mx-auto block ${d.isPromoApplied ? 'bg-green' : 'bg-slate/30'}`}>
                                                         <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform duration-300 shadow-sm ${d.isPromoApplied ? 'translate-x-6' : 'translate-x-1'}`}></div>
                                                     </button>
-                                                    <span className={`text-[10px] font-bold mt-2 block ${d.isPromoApplied ? 'text-green' : 'text-slate/50'}`}>
-                                                        {d.isPromoApplied ? 'Đã chạy' : 'Chưa chạy'}
-                                                    </span>
+                                                    <span className={`text-[10px] font-bold mt-2 block ${d.isPromoApplied ? 'text-green' : 'text-slate/50'}`}>{d.isPromoApplied ? 'Đã chạy' : 'Chưa chạy'}</span>
                                                 </td>
                                             </tr>
                                         ))}
@@ -825,179 +661,179 @@
                                 <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{totalReturns} Yêu cầu</span>
                             </div>
                             
-                            {totalReturns === 0 ? (
-                                <div className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Đổi Trả NPP</div>
-                            ) : (
-                                <div className="p-5 space-y-4">
-                                    <div className="flex gap-2 overflow-x-auto pb-4 mb-2 hide-scrollbar border-b border-sand/50">
-                                        {TIME_BUCKETS.map(bucket => {
-                                            const count = returns.filter(r => getExpBucket(r.daysLeft) === bucket).length;
-                                            return (
-                                                <button
-                                                    key={bucket}
-                                                    onClick={() => setActiveReturnTimeTab(bucket)}
-                                                    className={`px-4 py-2 text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 border-2
-                                                        ${activeReturnTimeTab === bucket 
-                                                            ? 'border-navy bg-navy text-sand shadow-md' 
-                                                            : 'border-sand/50 bg-white text-slate hover:border-navy/30'}`}
-                                                >
-                                                    {bucket}
-                                                    <span className={`px-2 py-0.5 rounded-lg text-xs ${activeReturnTimeTab === bucket ? 'bg-gold text-navy' : 'bg-sand text-navy'}`}>
-                                                        {count}
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {Object.keys(groupedReturns).length > 0 ? (
-                                        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                                            {Object.keys(groupedReturns).map(nppName => (
-                                                <button
-                                                    key={nppName}
-                                                    onClick={() => setActiveReturnNppTab(nppName)}
-                                                    className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2
-                                                        ${activeReturnNppTab === nppName ? 'bg-navy text-sand shadow-sm' : 'bg-sand/30 hover:bg-sand/50 text-navy'}`}
-                                                >
-                                                    {nppName}
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeReturnNppTab === nppName ? 'bg-gold text-navy' : 'bg-navy/10 text-navy'}`}>
-                                                        {groupedReturns[nppName].length}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center text-slate/50 text-sm py-4">Không có sản phẩm nào thuộc nhóm thời gian này.</div>
-                                    )}
-
-                                    {activeReturnNppTab && groupedReturns[activeReturnNppTab] && (
-                                        <div className="overflow-x-auto border border-sand rounded-2xl animate-in fade-in">
-                                            <table className="w-full text-sm text-left border-collapse">
-                                                <thead className="bg-sand/30 text-slate">
-                                                    <tr>
-                                                        <th className="p-4 font-semibold uppercase text-[11px]">Tên sản phẩm</th>
-                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center">Mã SKU</th>
-                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center w-24">Số lượng</th>
-                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center w-36">Trạng thái</th>
-                                                        <th className="p-4 font-semibold uppercase text-[11px] w-48">Ghi chú</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-sand/50">
-                                                    {groupedReturns[activeReturnNppTab].map(r => (
-                                                        <tr key={r.id} className="hover:bg-sand/10">
-                                                            <td className="p-4 font-bold text-navy">{r.name}</td>
-                                                            <td className="p-4 text-center font-mono text-slate text-xs">{r.barcode || "N/A"}</td>
-                                                            <td className="p-4 text-center font-bold text-navy">{r.qty}</td>
-                                                            <td className="p-4 text-center">
-                                                                <select 
-                                                                    value={r.status} 
-                                                                    onChange={(e) => handleReturnStatus(r.id, e.target.value)} 
-                                                                    className={`text-xs font-bold rounded-xl px-3 py-1.5 outline-none border w-full text-center appearance-none cursor-pointer
-                                                                        ${r.status === 'Chờ xử lý' ? 'bg-white border-blue text-slate' : 
-                                                                          r.status === 'Đã báo NPP' ? 'bg-blue/10 border-blue/30 text-navy' : 'bg-green/10 border-green/30 text-green'}`}
-                                                                >
-                                                                    <option value="Chờ xử lý">Chờ xử lý</option>
-                                                                    <option value="Đã báo NPP">Đã báo NPP</option>
-                                                                    <option value="Đã nhận đổi trả">Đã nhận đổi trả</option>
-                                                                </select>
-                                                            </td>
-                                                            <td className="p-4">
-                                                                {r.status === 'Đã nhận đổi trả' ? (
-                                                                    <input type="text" placeholder="Ghi chú cấn trừ..." className="border border-blue/50 rounded-lg px-3 py-1.5 text-xs w-full outline-none" />
-                                                                ) : (
-                                                                    <span className="text-blue text-xs italic">Đang chờ xử lý</span>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
+                            <div className="p-5 space-y-4">
+                                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 border-b border-sand/50 hide-scrollbar">
+                                    {TIME_BUCKETS.map(bucket => {
+                                        const count = returns.filter(r => getExpBucket(r.daysLeft) === bucket).length;
+                                        return (
+                                            <button key={bucket} onClick={() => setActiveReturnTimeTab(bucket)} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 border-2 ${activeReturnTimeTab === bucket ? 'border-navy bg-navy text-sand shadow-md' : 'border-sand/50 bg-white text-slate hover:border-navy/30'}`}>
+                                                {bucket} <span className={`px-2 py-0.5 rounded-lg text-xs ${activeReturnTimeTab === bucket ? 'bg-gold text-navy' : 'bg-sand text-navy'}`}>{count}</span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                            )}
+
+                                {Object.keys(groupedReturns).length > 0 && (
+                                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                                        {Object.keys(groupedReturns).map(nppName => (
+                                            <button key={nppName} onClick={() => setActiveReturnNppTab(nppName)} className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2 ${activeReturnNppTab === nppName ? 'bg-navy text-sand shadow-sm' : 'bg-sand/30 hover:bg-sand/50 text-navy'}`}>
+                                                {nppName} <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeReturnNppTab === nppName ? 'bg-gold text-navy' : 'bg-navy/10 text-navy'}`}>{groupedReturns[nppName].length}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {activeReturnNppTab && groupedReturns[activeReturnNppTab] && (
+                                    <div className="overflow-x-auto border border-sand rounded-2xl animate-in fade-in">
+                                        <table className="w-full text-sm text-left border-collapse">
+                                            <thead className="bg-sand/30 text-slate">
+                                                <tr>
+                                                    <th className="p-4 font-semibold uppercase text-[11px]">Sản phẩm</th>
+                                                    <th className="p-4 font-semibold uppercase text-[11px] text-center">SL</th>
+                                                    <th className="p-4 font-semibold uppercase text-[11px] text-center w-36">Trạng thái</th>
+                                                    <th className="p-4 font-semibold uppercase text-[11px] w-48 text-right">Ghi chú & Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-sand/50">
+                                                {groupedReturns[activeReturnNppTab].map(r => (
+                                                    <tr key={r.id} className="hover:bg-sand/10">
+                                                        <td className="p-4 flex items-center gap-3">
+                                                            <ProductAvatar url={r.imageUrl} />
+                                                            <div>
+                                                                <p className="font-bold text-navy">{r.name}</p>
+                                                                <p className="font-mono text-slate text-xs mt-0.5">SKU: {r.barcode}</p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 text-center font-bold text-navy text-lg">{r.qty}</td>
+                                                        <td className="p-4 text-center">
+                                                            <select value={r.status} onChange={(e) => handleReturnStatus(r.id, e.target.value)} className={`text-xs font-bold rounded-xl px-3 py-2 outline-none border w-full text-center cursor-pointer ${r.status === 'Chờ xử lý' ? 'bg-white border-blue text-slate' : r.status === 'Đã báo NPP' ? 'bg-blue/10 border-blue/30 text-navy' : 'bg-green/10 border-green/30 text-green'}`}>
+                                                                <option value="Chờ xử lý">Chờ xử lý</option>
+                                                                <option value="Đã báo NPP">Đã báo NPP</option>
+                                                                <option value="Đã nhận đổi">Đã nhận đổi</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-4 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <input type="text" placeholder="Ghi chú..." defaultValue={r.note} className="border border-blue/20 bg-white rounded-lg px-3 py-2 text-xs w-full max-w-[120px] outline-none" />
+                                                                <button onClick={() => handleDeleteReturn(r.id, r.name)} className="bg-red/10 text-red hover:bg-red hover:text-white p-2 rounded-lg transition-colors border border-red/20" title="Xóa dữ liệu">
+                                                                    <Icon name="trash-2" className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* KHU 3: XỬ LÝ ĐẶT HÀNG */}
                         <div className={`bg-white rounded-3xl shadow-sm border border-navy/5 overflow-hidden ${lockClass}`}>
                             <div className="bg-navy p-5 text-sand flex justify-between items-center">
                                 <h2 className="font-semibold flex items-center"><Icon name="shopping-cart" className="mr-3 text-gold" /> XỬ LÝ ĐẶT HÀNG</h2>
-                                <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{orders.length} Sản phẩm cần đặt</span>
+                                <span className="bg-gold text-navy font-bold text-xs px-3 py-1.5 rounded-full">{orders.length} Chờ xử lý</span>
                             </div>
 
-                            {orders.length === 0 ? (
-                                <div className="p-8 text-center text-blue py-8 font-medium">Không có đơn hàng nào chờ xử lý.</div>
-                            ) : (
-                                <div className="p-5 space-y-4">
-                                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-sand/50">
-                                        {Object.keys(groupedOrders).map(nppName => {
-                                            const maxWait = Math.max(...groupedOrders[nppName].map(o => o.hoursWait));
-                                            const alertStyle = getWaitAlert(maxWait);
-                                            return (
-                                                <button
-                                                    key={nppName}
-                                                    onClick={() => setActiveOrderNppTab(nppName)}
-                                                    className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2
-                                                        ${activeOrderNppTab === nppName ? 'bg-navy text-sand shadow-sm' : 'bg-sand/30 hover:bg-sand/50 text-navy'}`}
-                                                >
-                                                    <span className="text-[10px]">{alertStyle.icon.split(' ')[0]}</span>
-                                                    {nppName}
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === nppName ? 'bg-gold text-navy' : 'bg-navy/10 text-navy'}`}>
-                                                        {groupedOrders[nppName].length}
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {activeOrderNppTab && groupedOrders[activeOrderNppTab] && (
-                                        <div className="space-y-4 animate-in fade-in">
-                                            <div className="flex justify-between items-center bg-sand/10 p-3 rounded-2xl border border-sand">
-                                                <div>
-                                                    <p className="text-xs text-slate font-medium">Nhà phân phối đang xem:</p>
-                                                    <h3 className="font-bold text-navy text-sm">{activeOrderNppTab}</h3>
-                                                </div>
-                                                <button 
-                                                    onClick={() => handleCloseOrders(activeOrderNppTab)} 
-                                                    className="bg-navy hover:bg-slate text-sand text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 transition-colors"
-                                                >
-                                                    <Icon name="check-circle-2" className="text-gold" /> Xác nhận đã chốt đơn
-                                                </button>
-                                            </div>
-
-                                            <div className="overflow-x-auto border border-sand rounded-2xl">
-                                                <table className="w-full text-sm text-left border-collapse">
-                                                    <thead className="bg-sand/30 text-slate">
-                                                        <tr>
-                                                            <th className="p-4 font-semibold uppercase text-[11px]">Tên sản phẩm</th>
-                                                            <th className="p-4 font-semibold uppercase text-[11px] text-center">Mã SKU</th>
-                                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-24">Số lượng</th>
-                                                            <th className="p-4 font-semibold uppercase text-[11px] text-center w-32">Chờ xử lý</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-sand/50">
-                                                        {groupedOrders[activeOrderNppTab].map(item => {
-                                                            const alertStyle = getWaitAlert(item.hoursWait);
-                                                            return (
-                                                                <tr key={item.id} className="hover:bg-sand/10">
-                                                                    <td className="p-4 font-bold text-navy">{item.name}</td>
-                                                                    <td className="p-4 text-center font-mono text-slate text-xs">{item.barcode || "N/A"}</td>
-                                                                    <td className="p-4 text-center font-bold text-navy">{item.qty}</td>
-                                                                    <td className="p-4 text-center">
-                                                                        <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${alertStyle.bg} ${alertStyle.text}`}>
-                                                                            {item.hoursWait} giờ ({alertStyle.icon.split(' ')[1]})
-                                                                        </span>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    )}
+                            <div className="p-5 space-y-4">
+                                <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-sand/50">
+                                    {/* Tab Lưu Trữ */}
+                                    <button onClick={() => setActiveOrderNppTab('ARCHIVE')} className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2 border-2 border-dashed ${activeOrderNppTab === 'ARCHIVE' ? 'bg-navy text-sand border-navy' : 'bg-white text-slate border-slate/30'}`}>
+                                        <Icon name="archive" className="w-3 h-3" /> 📦 ĐÃ LƯU TRỮ (7 NGÀY)
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === 'ARCHIVE' ? 'bg-gold text-navy' : 'bg-slate/10 text-slate'}`}>{archivedOrders.length}</span>
+                                    </button>
+                                    <div className="w-px bg-sand mx-1"></div>
+                                    
+                                    {/* Tabs NPP (Đã sort theo thời gian chờ) */}
+                                    {sortedNppOrderTabs.map(nppName => {
+                                        const maxWait = Math.max(...groupedOrders[nppName].map(o => o.hoursWait));
+                                        const alertStyle = getWaitAlert(maxWait);
+                                        return (
+                                            <button key={nppName} onClick={() => setActiveOrderNppTab(nppName)} className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2 border border-transparent ${activeOrderNppTab === nppName ? `bg-navy text-sand shadow-lg ${alertStyle.pulse}` : `bg-sand/30 hover:bg-sand/50 text-navy ${alertStyle.border}`}`}>
+                                                <span className="text-[10px]">{alertStyle.icon.split(' ')[0]}</span> {nppName}
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === nppName ? 'bg-gold text-navy' : 'bg-white shadow-sm text-navy'}`}>{groupedOrders[nppName].length}</span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                            )}
+
+                                {activeOrderNppTab === 'ARCHIVE' ? (
+                                    <div className="overflow-x-auto border border-dashed border-slate/30 rounded-2xl animate-in fade-in bg-slate/5">
+                                        <table className="w-full text-sm text-left border-collapse opacity-70">
+                                            <thead className="text-slate/60">
+                                                <tr><th className="p-4 font-semibold uppercase text-[11px]">Sản phẩm đã chốt (Tự động xóa sau 7 ngày)</th><th className="p-4 font-semibold uppercase text-[11px] text-center w-24">Đã chốt</th></tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate/10">
+                                                {archivedOrders.map(item => (
+                                                    <tr key={item.id}>
+                                                        <td className="p-4 flex items-center gap-3">
+                                                            <ProductAvatar url={item.imageUrl} />
+                                                            <div><p className="font-bold text-navy">{item.name}</p><p className="text-[10px] text-slate">{item.npp}</p></div>
+                                                        </td>
+                                                        <td className="p-4 text-center font-bold text-navy bg-white/50">{item.qty}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : activeOrderNppTab && groupedOrders[activeOrderNppTab] ? (
+                                    <div className="space-y-4 animate-in fade-in">
+                                        <div className="flex justify-between items-center bg-sand/10 p-3 rounded-2xl border border-sand">
+                                            <div>
+                                                <p className="text-xs text-slate font-medium">Nhà phân phối đang xem:</p>
+                                                <h3 className="font-bold text-navy text-sm">{activeOrderNppTab}</h3>
+                                            </div>
+                                            <button onClick={() => handleCloseOrders(activeOrderNppTab)} className="bg-navy hover:bg-slate text-sand text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 transition-colors">
+                                                <Icon name="check-circle-2" className="text-gold w-4 h-4" /> Xác nhận đã chốt đơn
+                                            </button>
+                                        </div>
+
+                                        <div className="overflow-x-auto border border-sand rounded-2xl">
+                                            <table className="w-full text-sm text-left border-collapse">
+                                                <thead className="bg-sand/30 text-slate">
+                                                    <tr>
+                                                        <th className="p-4 font-semibold uppercase text-[11px]">Sản phẩm</th>
+                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center w-32">Chờ xử lý</th>
+                                                        <th className="p-4 font-semibold uppercase text-[11px] text-center w-32">Số lượng đặt</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-sand/50">
+                                                    {groupedOrders[activeOrderNppTab].map(item => {
+                                                        const alertStyle = getWaitAlert(item.hoursWait);
+                                                        return (
+                                                            <tr key={item.id} className="hover:bg-sand/10">
+                                                                <td className="p-4 flex items-center gap-3">
+                                                                    <ProductAvatar url={item.imageUrl} />
+                                                                    <div>
+                                                                        <p className="font-bold text-navy">{item.name}</p>
+                                                                        <p className="font-mono text-slate text-xs mt-0.5">SKU: {item.barcode}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4 text-center">
+                                                                    <span className={`inline-block text-xs font-bold px-3 py-1.5 rounded-xl border ${alertStyle.bg} ${alertStyle.text} ${alertStyle.border} ${alertStyle.pulse}`}>
+                                                                        {item.hoursWait}h ({alertStyle.icon.split(' ')[1]})
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-4 text-center">
+                                                                    {/* Input Số lượng cho phép sửa trực tiếp */}
+                                                                    <input 
+                                                                        type="number" 
+                                                                        defaultValue={item.qty} 
+                                                                        onBlur={(e) => handleOrderQtyChange(item.id, e.target.value, item.qty)}
+                                                                        className={`w-20 text-center text-lg font-black bg-transparent border-b-2 outline-none pb-1 transition-colors ${item.isEdited ? 'text-green border-green' : 'text-slate/60 border-slate/20 hover:border-blue'}`} 
+                                                                        title="Nhấp để sửa số lượng thực tế"
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1018,27 +854,18 @@
             const [activeTab, setActiveTab] = useState('candate');
             const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
             
-            // Dùng State trong RAM thay vì LocalStorage để tránh Crash trên môi trường Preview
             const [syncQueue, setSyncQueue] = useState([]);
             const [syncTotal, setSyncTotal] = useState(0);
             const [syncProcessed, setSyncProcessed] = useState(0);
             const isSyncingRef = useRef(false);
 
             useEffect(() => {
-                if (syncQueue.length === 0) {
-                    setSyncTotal(0);
-                    setSyncProcessed(0);
-                }
+                if (syncQueue.length === 0) { setSyncTotal(0); setSyncProcessed(0); }
             }, [syncQueue]);
 
             useEffect(() => {
                 const handleBeforeUnload = (e) => {
-                    if (syncQueue.length > 0) {
-                        const message = 'Hệ thống đang được đồng bộ, đề nghị bạn không tắt đi.';
-                        e.preventDefault();
-                        e.returnValue = message;
-                        return message;
-                    }
+                    if (syncQueue.length > 0) { const message = 'Hệ thống đang được đồng bộ, đề nghị bạn không tắt đi.'; e.preventDefault(); e.returnValue = message; return message; }
                 };
                 window.addEventListener('beforeunload', handleBeforeUnload);
                 return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -1046,45 +873,25 @@
 
             useEffect(() => {
                 if (syncQueue.length === 0 || isSyncingRef.current) return;
-
                 const processNext = async () => {
                     isSyncingRef.current = true;
                     const currentItem = syncQueue[0];
-
                     try {
-                        await fetch(API_URL, {
-                            method: 'POST',
-                            mode: 'no-cors', 
-                            headers: { 'Content-Type': 'text/plain' },
-                            body: JSON.stringify(currentItem.payload)
-                        });
-
+                        await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(currentItem.payload) });
                         setSyncProcessed(prev => prev + 1);
                         setSyncQueue(prev => prev.filter(item => item.id !== currentItem.id));
                     } catch (error) {
-                        console.error("Lỗi đồng bộ ngầm:", error);
                         await new Promise(res => setTimeout(res, 3000));
-                        setSyncQueue(prev => {
-                            const newQ = [...prev.filter(item => item.id !== currentItem.id), currentItem];
-                            return newQ;
-                        });
-                    } finally {
-                        isSyncingRef.current = false;
-                    }
+                        setSyncQueue(prev => { const newQ = [...prev.filter(item => item.id !== currentItem.id), currentItem]; return newQ; });
+                    } finally { isSyncingRef.current = false; }
                 };
-
                 processNext();
             }, [syncQueue]);
 
             const addToSyncQueue = (payload) => {
                 const newItem = { id: Date.now() + Math.random().toString(), payload };
                 setSyncQueue(prev => {
-                    if (prev.length === 0) {
-                        setSyncTotal(1);
-                        setSyncProcessed(0);
-                    } else {
-                        setSyncTotal(t => t + 1);
-                    }
+                    if (prev.length === 0) { setSyncTotal(1); setSyncProcessed(0); } else { setSyncTotal(t => t + 1); }
                     return [...prev, newItem];
                 });
             };
@@ -1092,38 +899,22 @@
             return (
                 <div className="bg-sand min-h-screen font-sans pb-20">
                     <SyncIndicator current={syncProcessed} total={syncTotal} />
-                    
                     <div className="w-full">
                         {activeTab === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} />}
-                        {activeTab === 'dathang' && (
-                            <ViewDatHang 
-                                locallyUploadedImages={locallyUploadedImages} 
-                                setLocallyUploadedImages={setLocallyUploadedImages} 
-                                addToSyncQueue={addToSyncQueue}
-                            />
-                        )}
+                        {activeTab === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} />}
                         {activeTab === 'dashboard' && <ViewDashboard addToSyncQueue={addToSyncQueue} />}
                     </div>
-
                     <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
                         <div className="bg-white/90 backdrop-blur-md shadow-[0_20px_40px_rgb(16,63,103,0.12)] rounded-3xl flex justify-around p-2 w-full max-w-md pointer-events-auto">
-                            <button onClick={() => setActiveTab('candate')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
-                                <Icon name="clock" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">CẬN DATE</span>
-                            </button>
-                            <button onClick={() => setActiveTab('dathang')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
-                                <Icon name="shopping-cart" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">ĐẶT HÀNG</span>
-                            </button>
-                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}>
-                                <Icon name="layout-dashboard" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">DASHBOARD</span>
-                            </button>
+                            <button onClick={() => setActiveTab('candate')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="clock" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">CẬN DATE</span></button>
+                            <button onClick={() => setActiveTab('dathang')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="shopping-cart" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">ĐẶT HÀNG</span></button>
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="layout-dashboard" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">DASHBOARD</span></button>
                         </div>
                     </div>
                 </div>
             );
         };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const root = ReactDOM.createRoot(document.getElementById('root')); root.render(<App />);
     </script>
 </body>
 </html>
