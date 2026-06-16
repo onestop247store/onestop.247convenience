@@ -71,7 +71,7 @@
             "NCC - KOLALAVN", "NPP HÙNG LÊ PHÁT - ĐẶC SẢN", "NCC BÁNH POCKY - CTY KỲ TIÊN", "NPP HÙNG LÊ PHÁT - XYTOL & SP LOTTE", 
             "PHƯỚC TÀI - CHUPA CHUP", "NPP MM SNICKERS COOL AIR - HƯƠNG THIỆN DUYÊN", "THÁI MỸ HƯƠNG - MÌ NISSIN", "TONG GARDEN", 
             "NPP HIẾU CƯỜNG - TRÁI CẤY SẤY & ESSENTIALS", "BLUE XANH (MÌ ACE COOK)", "NPP THIỆN HƯNG THỊNH - TRÀ BONCHA", 
-            "NCC - LÂM ANH (LỘC GIA NGUYÊN)", "NCC RƯỢU - CTY AT&T FOODS ĐÀ NẴNG", "NCC BIA - SAPPORO", "PHƯỚC TÀI - X-MEN", 
+            "NCC - Lâm ANH (LỘC GIA NGUYÊN)", "NCC RƯỢU - CTY AT&T FOODS ĐÀ NẴNG", "NCC BIA - SAPPORO", "PHƯỚC TÀI - X-MEN", 
             "PHƯỚC TÀI - NABATI", "NCC BIA - STEERSMAN", "THỊNH KIM HOÀNG - COOWY & ARCH COFFEE", "NPP LISTERINE DƯƠNG ANH TÀI", 
             "NPP BẢO HUY KẸO TOP OKF", "NCC ĐIỀU - CTY MỸ LINH", "NCC BÁNH PÍA - TUYẾT THIỆN AN", "NPP TÂM LÀNH CÀ PHÊ TRUNG NGUYÊN", 
             "NCC ESSENTIALS - CTY HƯƠNG BÌNH LAURIER", "NCC CÔNG TY THỰC PHẨM ÂN NAM", "NPP MINH CHÂU PHẠM", "NCC - LEEA. CAKE", "TRÀ COZY", 
@@ -158,7 +158,7 @@
             return (
                 <div className={`flex flex-col items-center p-6 rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5 ${bgClass}`}>
                     <div className="w-full text-center mb-6">
-                        <span className="text-navy font-extrabold uppercase tracking-wider text-sm block mb-1">{label}</span>
+                        <span className="text-navy font-extrabold uppercase tracking-wider text-sm block mb-1" style={{ color: color }}>{label}</span>
                         <span className="text-3xl font-extrabold text-navy">{max}</span>
                     </div>
                     <div className="relative w-56 h-32 overflow-hidden flex justify-center">
@@ -171,7 +171,7 @@
                         </div>
                     </div>
                     <div className="w-full mt-2 pt-4 border-t border-navy/10">
-                        <p className="text-center text-xs font-bold text-navy/70 uppercase tracking-wide mb-2">Tiến độ hoàn thành</p>
+                        <p className="text-center text-xs font-bold text-navy/70 uppercase tracking-wide mb-2">TIẾN ĐỘ HOÀN THÀNH</p>
                         <div className="flex justify-between text-xs font-medium text-navy/80">
                             <span>{subLabelLeft}</span>
                             <span>{subLabelRight}</span>
@@ -196,7 +196,7 @@
             return <div className="w-8 h-8 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-4 h-4 text-slate/40" /></div>;
         };
 
-        // --- VIEW 1 & VIEW 2 (GIỮ NGUYÊN) ---
+        // --- VIEW 1: CẬN DATE ---
         const ViewCanDate = ({ addToSyncQueue }) => {
             const [barcode, setBarcode] = useState('');
             const [product, setProduct] = useState(null);
@@ -300,6 +300,7 @@
             );
         };
 
+        // --- VIEW 2: ĐẶT HÀNG ---
         const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue }) => {
             const [barcode, setBarcode] = useState('');
             const [product, setProduct] = useState(null);
@@ -310,6 +311,11 @@
             const [isLoading, setIsLoading] = useState(false);
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
+
+            // State Upload ImgBB
+            const [localBase64Preview, setLocalBase64Preview] = useState(''); 
+            const [cloudImageUrl, setCloudImageUrl] = useState(''); 
+            const [isUploadingCloud, setIsUploadingCloud] = useState(false);
 
             const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
@@ -335,7 +341,22 @@
                             let width = img.width; let height = img.height;
                             if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
                             canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                            setImgBase64(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+                            
+                            const base64Data = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                            setLocalBase64Preview(base64Data);
+                            setIsUploadingCloud(true);
+                            
+                            const formData = new FormData();
+                            formData.append("image", base64Data);
+
+                            fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData })
+                            .then(res => res.json())
+                            .then(result => {
+                                if(result.success) { setCloudImageUrl(result.data.url); } 
+                                else { showMsg("Lỗi dịch vụ ảnh cloud!"); }
+                            })
+                            .catch(err => showMsg("Lỗi kết nối khi tải ảnh!"))
+                            .finally(() => setIsUploadingCloud(false));
                         };
                     };
                 }
@@ -343,10 +364,13 @@
 
             const handleSubmit = () => {
                 if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
-                addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp, imageBase64: imgBase64, isNewModel: isNewModel });
+                if(isUploadingCloud) return showMsg("Vui lòng chờ ảnh tải lên xong!", "warning");
+
+                addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp, imageUrlToUpdate: cloudImageUrl, isNewModel: isNewModel });
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
-                if (imgBase64 || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
-                setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setImgBase64('');
+                if (cloudImageUrl || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
+                
+                setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
             };
 
             return (
@@ -368,7 +392,7 @@
 
                             {product && (
                                 <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex gap-4 items-center animate-in fade-in">
-                                    {imgBase64 ? <ProductAvatar url={`data:image/jpeg;base64,${imgBase64}`} /> : <ProductAvatar url={product.imageUrl} />}
+                                    {localBase64Preview ? <ProductAvatar url={`data:image/jpeg;base64,${localBase64Preview}`} /> : <ProductAvatar url={product.imageUrl} />}
                                     <div className="flex-1 min-w-0">
                                         <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
                                         <p className="text-xs text-slate mt-1 flex items-center gap-1 truncate"><Icon name="map-pin" className="w-3 h-3 flex-shrink-0" /> {product.npp}</p>
@@ -397,23 +421,28 @@
                                         <span className="text-sm text-navy font-semibold">Tải lên / Cập nhật ảnh</span>
                                     </label>
                                     {(product.hasImage === false || isNewModel) && (
-                                        <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-navy/5 transition-all">
+                                        <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-navy/5 transition-all relative overflow-hidden">
                                             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                            <Icon name="upload-cloud" className="mb-2 text-navy" />
-                                            <span className="text-sm font-bold">Chụp ảnh mới</span>
+                                            {isUploadingCloud ? (
+                                                <div className="flex flex-col items-center text-blue relative z-10"><Icon name="loader-2" className="w-10 h-10 mb-2 animate-spin" /><span className="text-sm font-bold">Đang tải lên Cloud...</span></div>
+                                            ) : cloudImageUrl ? (
+                                                <div className="flex flex-col items-center text-green relative z-10"><Icon name="check-circle-2" className="w-10 h-10 mb-2" /><span className="text-sm font-bold">Đã lưu trữ ảnh!</span></div>
+                                            ) : (
+                                                <div className="flex flex-col items-center relative z-10"><div className="w-12 h-12 bg-sand/50 rounded-full flex items-center justify-center mb-3 text-navy"><Icon name="upload-cloud" /></div><span className="text-sm text-navy font-semibold text-center">Bấm để chụp ảnh</span></div>
+                                            )}
                                         </label>
                                     )}
                                 </div>
                             )}
 
-                            <button onClick={handleSubmit} className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center">GỬI YÊU CẦU</button>
+                            <button onClick={handleSubmit} disabled={isUploadingCloud} className={`w-full hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center ${isUploadingCloud ? 'bg-slate/50 cursor-not-allowed' : 'bg-navy'}`}>GỬI YÊU CẦU</button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- VIEW 3: DASHBOARD (HOÀN TOÀN MỚI) ---
+        // --- VIEW 3: DASHBOARD (HOÀN TOÀN MỚI & SỬA LỖI TRẮNG TRANG) ---
         const ViewDashboard = ({ addToSyncQueue }) => {
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [password, setPassword] = useState('');
@@ -422,7 +451,7 @@
             const [returns, setReturns] = useState([]);
             const [discounts, setDiscounts] = useState([]);
             const [orders, setOrders] = useState([]);
-            const [archivedOrders, setArchivedOrders] = useState([]); // State Lưu Trữ Đơn Hàng
+            const [archivedOrders, setArchivedOrders] = useState([]); // KHÔI PHỤC BIẾN NÀY ĐỂ TRÁNH LỖI REFERENCE ERROR
 
             const [isLoading, setIsLoading] = useState(false);
             const [apiError, setApiError] = useState('');
@@ -443,12 +472,16 @@
                     if (result.error) {
                         setApiError(`Lỗi API: ${result.error}`);
                     } else if (result.returns) {
-                        setReturns(result.returns);
-                        setDiscounts(result.discounts);
-                        setOrders(result.orders.filter(o => o.status === 'Đang chờ'));
-                        setArchivedOrders(result.orders.filter(o => o.status === 'Đã chốt'));
+                        setReturns(result.returns || []);
+                        setDiscounts(result.discounts || []);
+                        setOrders((result.orders || []).filter(o => o.status === 'Đang chờ'));
+                        setArchivedOrders((result.orders || []).filter(o => o.status === 'Đã chốt'));
                     }
-                } catch (error) { setApiError("Lỗi kết nối máy chủ."); } finally { setIsLoading(false); }
+                } catch (error) { 
+                    setApiError("Lỗi kết nối máy chủ. Vui lòng kiểm tra lại link API."); 
+                } finally { 
+                    setIsLoading(false); 
+                }
             };
 
             useEffect(() => {
@@ -465,7 +498,6 @@
                 return acc;
             }, {});
 
-            // Sort NPP Tabs: Ai có đơn chờ lâu nhất thì xếp lên đầu
             const sortedNppOrderTabs = Object.keys(groupedOrders).map(npp => ({
                 npp, maxWait: Math.max(...groupedOrders[npp].map(o => o.hoursWait))
             })).sort((a, b) => b.maxWait - a.maxWait).map(x => x.npp);
@@ -538,7 +570,6 @@
                  addToSyncQueue({ action: "updateDiscountRecord", id: id, qtyActual: payloadToSync.qtyActual, actualPct: payloadToSync.actualPct, isPromoApplied: payloadToSync.isPromoApplied });
             };
 
-            // UI Helpers
             const getWaitAlert = (hours) => {
                 if (hours <= 8) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn', pulse: '' };
                 if (hours <= 16) return { bg: 'bg-gold/20', text: 'text-darkred', border: 'border-gold/50', icon: '⏱️ Chú ý', pulse: '' };
@@ -546,9 +577,9 @@
                 return { bg: 'bg-darkred', text: 'text-white', border: 'border-darkred', icon: '🚨 KHẨN CẤP', pulse: 'animate-pulse shadow-[0_0_15px_rgba(185,32,37,0.5)]' };
             };
 
-            // Stats
             const totalReturns = returns.length;
             const pendingReturns = returns.filter(r => r.status === 'Chờ xử lý').length;
+            const processedReturns = totalReturns - pendingReturns;
             const totalDiscounts = discounts.length;
             const pendingDiscounts = discounts.filter(d => d.qtyActual === '' || d.needsDailyUpdate).length;
             const pendingOrdersCount = Object.keys(groupedOrders).length;
@@ -623,6 +654,9 @@
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-sand/50">
+                                        {discounts.length === 0 && (
+                                            <tr><td colSpan="5" className="p-8 text-center text-slate/50 font-medium">Chưa có dữ liệu Cận Date & Giảm Giá</td></tr>
+                                        )}
                                         {discounts.map(d => (
                                             <tr key={d.id} className={`hover:bg-sand/10 transition-colors ${(d.qtyActual === '' || d.needsDailyUpdate) ? 'bg-red/5' : ''}`}>
                                                 <td className="p-4 flex items-center gap-3">
@@ -738,14 +772,6 @@
 
                             <div className="p-5 space-y-4">
                                 <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-sand/50">
-                                    {/* Tab Lưu Trữ */}
-                                    <button onClick={() => setActiveOrderNppTab('ARCHIVE')} className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-2 border-2 border-dashed ${activeOrderNppTab === 'ARCHIVE' ? 'bg-navy text-sand border-navy' : 'bg-white text-slate border-slate/30'}`}>
-                                        <Icon name="archive" className="w-3 h-3" /> 📦 ĐÃ LƯU TRỮ (7 NGÀY)
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === 'ARCHIVE' ? 'bg-gold text-navy' : 'bg-slate/10 text-slate'}`}>{archivedOrders.length}</span>
-                                    </button>
-                                    <div className="w-px bg-sand mx-1"></div>
-                                    
-                                    {/* Tabs NPP (Đã sort theo thời gian chờ) */}
                                     {sortedNppOrderTabs.map(nppName => {
                                         const maxWait = Math.max(...groupedOrders[nppName].map(o => o.hoursWait));
                                         const alertStyle = getWaitAlert(maxWait);
@@ -756,6 +782,13 @@
                                             </button>
                                         );
                                     })}
+                                    
+                                    <div className="w-px bg-sand mx-1 shrink-0"></div>
+                                    
+                                    <button onClick={() => setActiveOrderNppTab('ARCHIVE')} className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border-2 border-dashed ${activeOrderNppTab === 'ARCHIVE' ? 'bg-navy text-sand border-navy' : 'bg-white text-slate border-slate/30'}`}>
+                                        <Icon name="archive" className="w-3 h-3" /> LƯU TRỮ
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeOrderNppTab === 'ARCHIVE' ? 'bg-gold text-navy' : 'bg-slate/10 text-slate'}`}>{archivedOrders.length}</span>
+                                    </button>
                                 </div>
 
                                 {activeOrderNppTab === 'ARCHIVE' ? (
@@ -816,7 +849,6 @@
                                                                     </span>
                                                                 </td>
                                                                 <td className="p-4 text-center">
-                                                                    {/* Input Số lượng cho phép sửa trực tiếp */}
                                                                     <input 
                                                                         type="number" 
                                                                         defaultValue={item.qty} 
@@ -854,6 +886,7 @@
             const [activeTab, setActiveTab] = useState('candate');
             const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
             
+            // XÓA BỎ LOCALSTORAGE Ở PREVIEW ĐỂ KHÔNG BỊ CRASH IFRAME (CHẠY BẰNG RAM TRÊN CANVAS)
             const [syncQueue, setSyncQueue] = useState([]);
             const [syncTotal, setSyncTotal] = useState(0);
             const [syncProcessed, setSyncProcessed] = useState(0);
