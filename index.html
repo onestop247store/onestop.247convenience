@@ -25,11 +25,12 @@
         }
     </script>
     
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Cố định phiên bản thư viện ổn định (UMD) để chống sập (Crash) -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.292.0/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <style>
         body { background-color: #E4DBD1; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent;}
@@ -110,9 +111,9 @@
 
         const Toast = ({ message, type }) => {
             if (!message) return null;
-            const bg = type === 'error' ? 'bg-red text-white' : type === 'warning' ? 'bg-gold text-navy' : 'bg-green text-white';
+            const bgClass = type === 'error' ? 'bg-red text-white' : type === 'warning' ? 'bg-gold text-navy' : 'bg-green text-white';
             return (
-                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[150] px-6 py-3 rounded-full shadow-lg text-sm font-bold toast-message whitespace-nowrap ${bg}`}>
+                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[150] px-6 py-3 rounded-full shadow-lg text-sm font-bold toast-message whitespace-nowrap ${bgClass}`}>
                     {message}
                 </div>
             );
@@ -142,7 +143,7 @@
         };
 
         const ProductAvatar = ({ url }) => {
-            if (url) return <img src={url} className="w-8 h-8 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
+            if (url) return <img src={url} alt="avatar" className="w-8 h-8 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
             return <div className="w-8 h-8 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-4 h-4 text-slate/40" /></div>;
         };
 
@@ -153,13 +154,13 @@
             const strokeDashoffset = circumference - (percentage * circumference);
             
             let overlayClass = "";
-            if(color === "#F0573A") overlayClass = "bg-red/10";
-            if(color === "#103F67") overlayClass = "bg-navy/5";
-            if(color === "#DAAF4F") overlayClass = "bg-gold/15";
+            if (color === "#F0573A") overlayClass = "bg-red/10";
+            if (color === "#103F67") overlayClass = "bg-navy/5";
+            if (color === "#DAAF4F") overlayClass = "bg-gold/15";
 
             return (
                 <div className="relative flex flex-col items-center p-6 rounded-3xl shadow-[0_8px_30px_rgb(16,63,103,0.05)] border border-navy/5 bg-white overflow-hidden">
-                    <div className={`absolute inset-0 ${overlayClass} pointer-events-none`}></div>
+                    <div className={`absolute inset-0 pointer-events-none ${overlayClass}`}></div>
                     
                     <div className="w-full text-center mb-6 relative z-10">
                         <span className="font-extrabold uppercase tracking-wider text-sm block mb-1" style={{ color: color }}>{label}</span>
@@ -205,7 +206,10 @@
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
+            const showMsg = (text, type = 'error') => { 
+                setMsg({ text, type }); 
+                setTimeout(() => setMsg({ text: '', type: '' }), 3000); 
+            };
 
             const fetchProductData = async (codeToFetch) => {
                 if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
@@ -312,7 +316,10 @@
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
+            const showMsg = (text, type = 'error') => { 
+                setMsg({ text, type }); 
+                setTimeout(() => setMsg({ text: '', type: '' }), 3000); 
+            };
 
             const fetchProductData = async (codeToFetch) => {
                 if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
@@ -321,21 +328,27 @@
                     const response = await fetch(`${API_URL}?action=scan&barcode=${codeToFetch}`);
                     const data = await response.json();
                     if (locallyUploadedImages[codeToFetch]) data.hasImage = true;
-                    if(data.found) { setProduct(data); setNpp(data.npp); } else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
+                    if(data.found) { setProduct(data); setNpp(data.npp); } 
+                    else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
                 } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
             };
 
             const handleImageUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const reader = new FileReader(); reader.readAsDataURL(file);
+                    const reader = new FileReader(); 
+                    reader.readAsDataURL(file);
                     reader.onload = (event) => {
-                        const img = new Image(); img.src = event.target.result;
+                        const img = new Image(); 
+                        img.src = event.target.result;
                         img.onload = () => {
-                            const canvas = document.createElement('canvas'); const MAX_WIDTH = 600; 
-                            let width = img.width; let height = img.height;
+                            const canvas = document.createElement('canvas'); 
+                            const MAX_WIDTH = 600; 
+                            let width = img.width; 
+                            let height = img.height;
                             if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
-                            canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                            canvas.width = width; canvas.height = height; 
+                            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
                             
                             const base64Data = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
                             setLocalBase64Preview(base64Data);
@@ -453,7 +466,10 @@
             
             const [itemToDelete, setItemToDelete] = useState(null);
 
-            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
+            const showMsg = (text, type = 'error') => { 
+                setMsg({ text, type }); 
+                setTimeout(() => setMsg({ text: '', type: '' }), 3000); 
+            };
 
             const [activeOrderNppTab, setActiveOrderNppTab] = useState('');
             const [activeReturnTimeTab, setActiveReturnTimeTab] = useState('0 ngày');
@@ -488,7 +504,9 @@
             }, [isAuthenticated]);
 
             const groupedOrders = orders.reduce((acc, order) => {
-                if (!acc[order.npp]) acc[order.npp] = []; acc[order.npp].push(order); return acc;
+                if (!acc[order.npp]) acc[order.npp] = []; 
+                acc[order.npp].push(order); 
+                return acc;
             }, {});
 
             const sortedNppOrderTabs = Object.keys(groupedOrders).map(npp => ({
@@ -508,7 +526,10 @@
                    const availableBuckets = returns.map(r => getExpBucket(r.daysLeft));
                    if (!availableBuckets.includes(activeReturnTimeTab)) {
                        for (let i = TIME_BUCKETS.length - 1; i >= 0; i--) {
-                           if (availableBuckets.includes(TIME_BUCKETS[i])) { setActiveReturnTimeTab(TIME_BUCKETS[i]); break; }
+                           if (availableBuckets.includes(TIME_BUCKETS[i])) { 
+                               setActiveReturnTimeTab(TIME_BUCKETS[i]); 
+                               break; 
+                           }
                        }
                    }
                 }
@@ -516,14 +537,18 @@
 
             const filteredReturns = returns.filter(r => getExpBucket(r.daysLeft) === activeReturnTimeTab);
             const groupedReturns = filteredReturns.reduce((acc, ret) => {
-                if (!acc[ret.npp]) acc[ret.npp] = []; acc[ret.npp].push(ret); return acc;
+                if (!acc[ret.npp]) acc[ret.npp] = []; 
+                acc[ret.npp].push(ret); 
+                return acc;
             }, {});
 
             useEffect(() => {
                 const activeReturnNpps = Object.keys(groupedReturns);
                 if (activeReturnNpps.length > 0 && !activeReturnNpps.includes(activeReturnNppTab)) {
                     setActiveReturnNppTab(activeReturnNpps[0]);
-                } else if (activeReturnNpps.length === 0) { setActiveReturnNppTab(''); }
+                } else if (activeReturnNpps.length === 0) { 
+                    setActiveReturnNppTab(''); 
+                }
             }, [filteredReturns]);
 
             const handleReturnStatus = (id, newStatus) => {
@@ -531,12 +556,15 @@
                 addToSyncQueue({ action: "updateReturnStatus", id: id, status: newStatus });
             };
 
-            const confirmDelete = (id, name, type) => { setItemToDelete({ id, name, type }); };
+            const confirmDelete = (id, name, type) => { 
+                setItemToDelete({ id, name, type }); 
+            };
 
             const executeDelete = () => {
                 if (!itemToDelete) return;
                 if (itemToDelete.type === 'return') setReturns(returns.filter(r => r.id !== itemToDelete.id));
                 else if (itemToDelete.type === 'discount') setDiscounts(discounts.filter(d => d.id !== itemToDelete.id));
+                
                 addToSyncQueue({ action: "deleteReturn", id: itemToDelete.id });
                 showMsg("Đã xóa. Đang đồng bộ...", "success");
                 setItemToDelete(null);
@@ -547,7 +575,7 @@
                 setOrders(orders.filter(o => o.npp !== nppName));
                 setArchivedOrders([...ordersToArchive, ...archivedOrders]);
                 addToSyncQueue({ action: "completeOrderNpp", npp: nppName });
-                showMsg(`Đã chuyển đơn ${nppName} vào Lưu Trữ!`, "success");
+                showMsg(`Đã chuyển đơn vào Lưu Trữ!`, "success");
             };
 
             const handleOrderQtyChange = (id, newQty, oldQty) => {
@@ -568,7 +596,7 @@
                 if (hours <= 8) return { bg: 'bg-green/10', text: 'text-green', border: 'border-green/20', icon: '🟢 An toàn', pulse: '' };
                 if (hours <= 16) return { bg: 'bg-gold/20', text: 'text-darkred', border: 'border-gold/50', icon: '⏱️ Chú ý', pulse: '' };
                 if (hours <= 24) return { bg: 'bg-red/10', text: 'text-red', border: 'border-red/50', icon: '⚠️ Trễ hạn', pulse: '' };
-                return { bg: 'bg-darkred', text: 'text-white', border: 'border-darkred', icon: '🚨 KHẨN CẤP', pulse: 'animate-pulse shadow-[0_0_15px_rgba(185,32,37,0.5)]' };
+                return { bg: 'bg-darkred', text: 'text-white', border: 'border-darkred', icon: '🚨 KHẨN', pulse: 'animate-pulse shadow-[0_0_15px_rgba(185,32,37,0.5)]' };
             };
 
             const totalReturns = returns.length;
