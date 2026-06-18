@@ -25,7 +25,6 @@
         }
     </script>
     
-    <!-- Cố định phiên bản thư viện ổn định (UMD) để chống sập (Crash) -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
@@ -98,6 +97,13 @@
             "CTY CÔNG NGHỆ THỰC PHẨM D&T", "NCC KBC - SNACK GOKOCHI", "NCC TRẦN LÊ GIA - SAMYANG /HERSHEY"
         ];
 
+        const FALLBACK_PRODUCTS = [
+            { barcode: "8935001282655", name: "BÍ ĐAO | WINTER MELON TEA WDF 440ML", npp: "NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)" },
+            { barcode: "8934567890123", name: "BÁNH SANDWICH KINH ĐÔ LÁ DỨA", npp: "NPP VŨ MINH HƯNG - KINH ĐÔ" },
+            { barcode: "8931122334455", name: "NƯỚC SUỐI LAVIE 500ML", npp: "NCC NƯỚC - NƯỚC SUỐI LAVIE" },
+            { barcode: "8930001112223", name: "THUỐC LÁ 555 NGUYÊN BẢN", npp: "NCC THUỐC LÁ 555 - VÂN HẬU (KHOA)" }
+        ];
+
         const Icon = ({ name, className = '' }) => {
             const ref = useRef(null);
             useEffect(() => {
@@ -121,10 +127,20 @@
 
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
-                const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.0 }, false);
+                const formats = window.Html5QrcodeSupportedFormats ? 
+                                [window.Html5QrcodeSupportedFormats.EAN_13, window.Html5QrcodeSupportedFormats.EAN_8] : undefined;
+                const config = { 
+                    fps: 15, 
+                    qrbox: { width: 280, height: 100 },
+                    formatsToSupport: formats
+                };
+                
+                const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
                 html5QrcodeScanner.render((decodedText) => {
-                    html5QrcodeScanner.clear();
-                    onScanSuccess(decodedText);
+                    if (/^\d{8,13}$/.test(decodedText)) {
+                        html5QrcodeScanner.clear();
+                        onScanSuccess(decodedText);
+                    }
                 }, () => {});
                 return () => { html5QrcodeScanner.clear().catch(e => console.error(e)); };
             }, [onScanSuccess]);
@@ -135,7 +151,7 @@
                         <button onClick={onClose} className="absolute -top-12 right-0 text-white flex items-center bg-navy px-4 py-2 rounded-full border border-white/20">
                             Đóng <Icon name="x" className="ml-2 w-4 h-4" />
                         </button>
-                        <h3 className="text-center font-bold text-navy mb-4">Đưa camera vào mã vạch</h3>
+                        <h3 className="text-center font-bold text-navy mb-4">Căn mã vạch vào giữa khung chữ nhật</h3>
                         <div id="reader" className="w-full"></div>
                     </div>
                 </div>
@@ -143,8 +159,8 @@
         };
 
         const ProductAvatar = ({ url }) => {
-            if (url) return <img src={url} alt="avatar" className="w-8 h-8 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
-            return <div className="w-8 h-8 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-4 h-4 text-slate/40" /></div>;
+            if (url) return <img src={url} alt="avatar" className="w-10 h-10 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
+            return <div className="w-10 h-10 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-5 h-5 text-slate/40" /></div>;
         };
 
         const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
@@ -195,8 +211,165 @@
             return '60 ngày';
         };
 
-        const ViewCanDate = ({ addToSyncQueue }) => {
+        // --- COMPONENT: TÌM KIẾM NHÀ PHÂN PHỐI (Chống phân biệt hoa thường/có dấu) ---
+        const AutocompleteNpp = ({ value, onChange, nppList, placeholder, inputClass, iconClass }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const wrapperRef = useRef(null);
+
+            useEffect(() => {
+                function handleClickOutside(event) {
+                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { 
+                        setIsOpen(false); 
+                    }
+                }
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, []);
+
+            const normalizeStr = (str) => str ? String(str).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : '';
+
+            const filteredList = nppList.filter(n => {
+                if (!value) return true;
+                return normalizeStr(n).includes(normalizeStr(value));
+            });
+
+            return (
+                <div ref={wrapperRef} className="relative w-full">
+                    <input 
+                        type="text" 
+                        value={value} 
+                        onChange={(e) => { onChange(e.target.value); setIsOpen(true); }}
+                        onFocus={() => setIsOpen(true)}
+                        className={inputClass} 
+                        placeholder={placeholder} 
+                    />
+                    <Icon name="search" className={iconClass} />
+                    
+                    {isOpen && filteredList.length > 0 && (
+                        <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-sand/50 overflow-hidden z-[60] animate-in fade-in max-h-56 overflow-y-auto">
+                            {filteredList.map((n, idx) => (
+                                <div 
+                                    key={idx} 
+                                    onMouseDown={(e) => e.preventDefault()} // Ngăn chặn ô input bị mất focus trước khi onClick kịp chạy
+                                    onClick={() => {
+                                        onChange(n);
+                                        setIsOpen(false);
+                                    }}
+                                    className="p-4 hover:bg-sand/30 cursor-pointer border-b border-sand/10 transition-colors text-base font-semibold text-navy truncate"
+                                >
+                                    {n}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- COMPONENT: TÌM KIẾM SẢN PHẨM THÔNG MINH (Auto-complete & Search-on-blur) ---
+        const SmartProductSearch = ({ value, onChange, onManualSearch, masterProducts, onProductSelect, onScanClick, isLoading }) => {
+            const [suggestions, setSuggestions] = useState([]);
+            const [isOpen, setIsOpen] = useState(false);
+            const wrapperRef = useRef(null);
+
+            useEffect(() => {
+                function handleClickOutside(event) {
+                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { 
+                        setIsOpen(false); 
+                        if (value && value.trim() !== '' && onManualSearch) {
+                            onManualSearch(value.trim());
+                        }
+                    }
+                }
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, [value, onManualSearch]);
+
+            const handleInputChange = (e) => {
+                const val = e.target.value;
+                onChange(val);
+
+                if (val.trim() === '') { 
+                    setSuggestions([]); setIsOpen(false); return; 
+                }
+
+                const cleanVal = val.toLowerCase().trim();
+                
+                const filtered = masterProducts.filter(p => {
+                    const nameStr = p.name ? String(p.name).toLowerCase() : '';
+                    const bcStr = p.barcode ? String(p.barcode) : '';
+                    return nameStr.includes(cleanVal) || bcStr.includes(cleanVal) || bcStr.slice(-6).includes(cleanVal);
+                });
+
+                setSuggestions(filtered.slice(0, 5));
+                setIsOpen(true);
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    setIsOpen(false);
+                    if (value && value.trim() !== '' && onManualSearch) {
+                        onManualSearch(value.trim());
+                    }
+                }
+            };
+
+            const isInputFilled = value.trim().length > 0;
+
+            return (
+                <div ref={wrapperRef} className="relative w-full flex gap-2">
+                    <div className="relative flex-1">
+                        <input 
+                            type="text" 
+                            value={value} 
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => value && suggestions.length > 0 && setIsOpen(true)}
+                            className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base text-navy font-medium outline-none focus:ring-2 focus:ring-blue transition-all" 
+                            placeholder="Quét hoặc điền mã/tên..." 
+                        />
+                        {isOpen && suggestions.length > 0 && (
+                            <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-sand/50 overflow-hidden z-50 animate-in fade-in max-h-60 overflow-y-auto">
+                                {suggestions.map((p, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onClick={() => {
+                                            setIsOpen(false);
+                                            onProductSelect(p);
+                                        }}
+                                        className="p-3 hover:bg-sand/30 cursor-pointer border-b border-sand/10 transition-colors flex items-center gap-3"
+                                    >
+                                        <ProductAvatar url={p.imageUrl} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-navy text-sm truncate">{p.name}</p>
+                                            <p className="text-[11px] text-slate font-mono mt-0.5">Mã: {String(p.barcode)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {isInputFilled ? (
+                        <button onClick={() => { setIsOpen(false); if(onManualSearch) onManualSearch(value.trim()); }} className="bg-gold hover:bg-gold/80 text-navy p-4 rounded-2xl flex items-center justify-center w-14 shrink-0 transition-colors shadow-sm">
+                            {isLoading ? <Icon name="loader-2" className="animate-spin" /> : <Icon name="search" />}
+                        </button>
+                    ) : (
+                        <button onClick={onScanClick} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14 shrink-0 transition-colors shadow-sm">
+                            {isLoading ? <Icon name="loader-2" className="animate-spin" /> : <Icon name="scan-line" />}
+                        </button>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // KHU VỰC CẬN DATE
+        // ==========================================
+        const ViewCanDate = ({ addToSyncQueue, masterProducts }) => {
             const [barcode, setBarcode] = useState('');
+            const [searchInput, setSearchInput] = useState(''); 
             const [product, setProduct] = useState(null);
             const [qty, setQty] = useState('');
             const [expDate, setExpDate] = useState('');
@@ -206,33 +379,76 @@
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => { 
-                setMsg({ text, type }); 
-                setTimeout(() => setMsg({ text: '', type: '' }), 3000); 
+            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
+
+            const handleProductSelected = (prod) => {
+                setBarcode(prod.barcode);
+                setSearchInput(prod.name);
+                setProduct(prod);
+                setNpp(prod.npp || '');
+                // Auto reset các field khi chuyển sang SP khác để chống nhập liệu sai
+                setQty(''); setExpDate(''); setAction('');
             };
 
             const fetchProductData = async (codeToFetch) => {
-                if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
                 setIsLoading(true);
                 try {
                     const response = await fetch(`${API_URL}?action=scan&barcode=${codeToFetch}`);
                     const data = await response.json();
-                    if(data.found) { setProduct(data); setNpp(data.npp); } 
-                    else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
+                    if(data.found) { 
+                        handleProductSelected({ ...data, barcode: codeToFetch }); 
+                    } 
+                    else { 
+                        showMsg("Không tìm thấy sản phẩm trên máy chủ!"); 
+                        setProduct(null); 
+                    }
                 } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
             };
+
+            const handleManualSearch = (scannedCode) => {
+                const cleanCode = scannedCode.trim();
+                if (!cleanCode) return;
+                
+                // Tránh reset data nếu user đang xem đúng SP đó
+                if (product && (String(product.barcode) === cleanCode || product.name === cleanCode)) return;
+                
+                setIsScanning(false);
+
+                // ƯU TIÊN 1: Tra cứu Offline Cache (0ms)
+                const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || p.name.toLowerCase() === cleanCode.toLowerCase());
+                if (foundLocal) {
+                    handleProductSelected(foundLocal);
+                } else {
+                    // ƯU TIÊN 2: Lên server nếu đúng format mã vạch
+                    if (/^\d+$/.test(cleanCode)) {
+                        fetchProductData(cleanCode);
+                    } else {
+                        showMsg("Không tìm thấy sản phẩm hợp lệ!");
+                        setProduct(null);
+                    }
+                }
+            };
+
+            // Tự động tìm khi ô nhập liệu đủ 8 hoặc 13 số
+            useEffect(() => {
+                const cleanCode = searchInput.trim();
+                if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) {
+                    handleManualSearch(cleanCode);
+                }
+            }, [searchInput]);
 
             const handleSubmit = () => {
                 if(!product || !qty || !expDate || !action) return showMsg("Vui lòng điền đủ thông tin!");
                 if(action === 'doitra' && !npp) return showMsg("Vui lòng chọn NPP đổi trả!");
                 addToSyncQueue({ action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp });
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
-                setBarcode(''); setProduct(null); setQty(''); setExpDate(''); setAction(''); setNpp('');
+                
+                setBarcode(''); setSearchInput(''); setProduct(null); setQty(''); setExpDate(''); setAction(''); setNpp('');
             };
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
-                    {isScanning && <BarcodeScanner onScanSuccess={(t) => {setBarcode(t); setIsScanning(false); fetchProductData(t);}} onClose={() => setIsScanning(false)} />}
+                    {isScanning && <BarcodeScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6 relative z-10">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
@@ -240,21 +456,25 @@
                         </h2>
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-navy">Mã vạch sản phẩm</label>
-                                <div className="flex gap-2">
-                                    <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} onBlur={() => barcode && fetchProductData(barcode)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
-                                    <button onClick={() => setIsScanning(true)} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14 transition-colors">
-                                        {isLoading ? "..." : <Icon name="scan-line" />}
-                                    </button>
-                                </div>
+                                <label className="block text-sm font-semibold text-navy">Kiểm tra sản phẩm</label>
+                                <SmartProductSearch 
+                                    value={searchInput}
+                                    onChange={setSearchInput}
+                                    onManualSearch={handleManualSearch}
+                                    masterProducts={masterProducts}
+                                    onProductSelect={handleProductSelected}
+                                    onScanClick={() => setIsScanning(true)}
+                                    isLoading={isLoading}
+                                />
                             </div>
                             
+                            {/* LAYOUT CHUẨN: AVATAR - TÊN IN ĐẬM - BARCODE NHỎ */}
                             {product && (
                                 <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4 animate-in fade-in">
                                     <ProductAvatar url={product.imageUrl} />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[11px] font-semibold text-navy/50 uppercase">Sản phẩm</p>
-                                        <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
+                                        <p className="font-bold text-base text-navy leading-tight">{product.name}</p>
+                                        <p className="text-sm text-slate mt-1 font-mono tracking-wide">{barcode}</p>
                                     </div>
                                 </div>
                             )}
@@ -262,37 +482,40 @@
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2 w-full overflow-hidden">
                                     <label className="block text-sm font-semibold text-navy">SL Tồn</label>
-                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-3 text-sm text-navy outline-none" placeholder="VD: 15" />
+                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none" placeholder="VD: 15" />
                                 </div>
                                 <div className="space-y-2 w-full overflow-hidden">
                                     <label className="block text-sm font-semibold text-navy whitespace-nowrap">Ngày Hết Hạn</label>
-                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-3 text-sm text-navy outline-none" />
+                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none" />
                                 </div>
                             </div>
 
                             <div className="space-y-3 pt-2">
                                 <label className="block text-sm font-semibold text-navy">Hướng xử lý <span className="text-red">*</span></label>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={() => setAction('doitra')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'doitra' ? 'border-blue bg-blue/10 text-navy' : 'border-blue/20 text-slate'}`}>
+                                    <button onClick={() => setAction('doitra')} className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${action === 'doitra' ? 'border-blue bg-blue/10 text-navy' : 'border-blue/20 text-slate'}`}>
                                         <Icon name="refresh-ccw" className={action === 'doitra' ? 'text-blue' : 'text-blue/40'} /> Đổi Trả NPP
                                     </button>
-                                    <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy' : 'border-blue/20 text-slate'}`}>
+                                    <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy' : 'border-blue/20 text-slate'}`}>
                                         <Icon name="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'} /> Bán Giảm Giá
                                     </button>
                                 </div>
                                 {action === 'doitra' && (
                                     <div className="space-y-2 mt-4 p-4 bg-blue/5 border border-blue/20 rounded-2xl animate-in fade-in">
                                         <label className="block text-sm font-semibold text-navy">Chọn NPP Đổi Trả <span className="text-red">*</span></label>
-                                        <div className="relative">
-                                            <input list="npp-list" value={npp} onChange={(e)=>setNpp(e.target.value)} className="w-full bg-white border border-blue/50 rounded-xl p-3 pr-10 text-navy outline-none shadow-sm" placeholder="Tìm NPP..." />
-                                            <datalist id="npp-list">{MOCK_NPP_LIST.map(n => <option key={n} value={n} />)}</datalist>
-                                            <Icon name="search" className="absolute right-3 top-3.5 text-navy/40 w-5 h-5" />
-                                        </div>
+                                        <AutocompleteNpp 
+                                            value={npp} 
+                                            onChange={setNpp} 
+                                            nppList={MOCK_NPP_LIST} 
+                                            placeholder="Tìm NPP..."
+                                            inputClass="w-full bg-white border border-blue/50 rounded-xl p-4 pr-10 text-base text-navy font-semibold outline-none shadow-sm focus:ring-2 focus:ring-blue transition-all"
+                                            iconClass="absolute right-4 top-4 text-navy/40 w-5 h-5 pointer-events-none"
+                                        />
                                     </div>
                                 )}
                             </div>
 
-                            <button onClick={handleSubmit} className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center">
+                            <button onClick={handleSubmit} className="w-full bg-navy hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center text-lg shadow-md">
                                 LƯU THÔNG TIN
                             </button>
                         </div>
@@ -301,8 +524,12 @@
             );
         };
 
-        const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue }) => {
+        // ==========================================
+        // KHU VỰC ĐẶT HÀNG
+        // ==========================================
+        const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue, masterProducts }) => {
             const [barcode, setBarcode] = useState('');
+            const [searchInput, setSearchInput] = useState('');
             const [product, setProduct] = useState(null);
             const [qty, setQty] = useState('');
             const [npp, setNpp] = useState('');
@@ -316,39 +543,77 @@
             const [isScanning, setIsScanning] = useState(false);
             const [msg, setMsg] = useState({ text: '', type: '' });
 
-            const showMsg = (text, type = 'error') => { 
-                setMsg({ text, type }); 
-                setTimeout(() => setMsg({ text: '', type: '' }), 3000); 
+            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
+
+            const handleProductSelected = (prod) => {
+                setBarcode(prod.barcode);
+                setSearchInput(prod.name);
+                setProduct(prod);
+                setNpp(prod.npp || '');
+                setQty('');
+                setLocalBase64Preview('');
+                setCloudImageUrl('');
+                setIsNewModel(false);
             };
 
             const fetchProductData = async (codeToFetch) => {
-                if(!codeToFetch) return showMsg("Vui lòng nhập Mã vạch!");
                 setIsLoading(true);
                 try {
                     const response = await fetch(`${API_URL}?action=scan&barcode=${codeToFetch}`);
                     const data = await response.json();
                     if (locallyUploadedImages[codeToFetch]) data.hasImage = true;
-                    if(data.found) { setProduct(data); setNpp(data.npp); } 
-                    else { showMsg("Không tìm thấy sản phẩm!"); setProduct(null); }
+                    
+                    if(data.found) { 
+                        handleProductSelected({ ...data, barcode: codeToFetch }); 
+                    } else { 
+                        setBarcode(codeToFetch);
+                        setProduct({ barcode: codeToFetch, name: 'Sản phẩm mới chưa đặt tên', npp: '', hasImage: false });
+                        setSearchInput(codeToFetch);
+                        setQty(''); setNpp('');
+                        showMsg("Mã vạch mới! Vui lòng tự bổ sung Tên và chọn NPP.", "warning");
+                    }
                 } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
             };
+
+            const handleManualSearch = (scannedCode) => {
+                const cleanCode = scannedCode.trim();
+                if (!cleanCode) return;
+                
+                if (product && (String(product.barcode) === cleanCode || product.name === cleanCode)) return;
+                
+                setIsScanning(false);
+
+                const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || p.name.toLowerCase() === cleanCode.toLowerCase());
+                if (foundLocal) {
+                    handleProductSelected(foundLocal);
+                } else {
+                    if (/^\d+$/.test(cleanCode)) {
+                        fetchProductData(cleanCode);
+                    } else {
+                        showMsg("Không tìm thấy sản phẩm hợp lệ!");
+                        setProduct(null);
+                    }
+                }
+            };
+
+            useEffect(() => {
+                const cleanCode = searchInput.trim();
+                if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) {
+                    handleManualSearch(cleanCode);
+                }
+            }, [searchInput]);
 
             const handleImageUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const reader = new FileReader(); 
-                    reader.readAsDataURL(file);
+                    const reader = new FileReader(); reader.readAsDataURL(file);
                     reader.onload = (event) => {
-                        const img = new Image(); 
-                        img.src = event.target.result;
+                        const img = new Image(); img.src = event.target.result;
                         img.onload = () => {
-                            const canvas = document.createElement('canvas'); 
-                            const MAX_WIDTH = 600; 
-                            let width = img.width; 
-                            let height = img.height;
+                            const canvas = document.createElement('canvas'); const MAX_WIDTH = 600; 
+                            let width = img.width; let height = img.height;
                             if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
-                            canvas.width = width; canvas.height = height; 
-                            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                            canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
                             
                             const base64Data = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
                             setLocalBase64Preview(base64Data);
@@ -371,19 +636,21 @@
             };
 
             const handleSubmit = () => {
-                if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin!");
+                if(!product || !qty || !npp) return showMsg("Vui lòng điền đủ thông tin bắt buộc!");
                 if(isUploadingCloud) return showMsg("Vui lòng chờ ảnh tải lên xong!", "warning");
 
-                addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: product.name, qty: qty, npp: npp, imageUrlToUpdate: cloudImageUrl, isNewModel: isNewModel });
+                const finalName = product.name === 'Sản phẩm mới chưa đặt tên' ? searchInput : product.name;
+
+                addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: finalName, qty: qty, npp: npp, imageUrlToUpdate: cloudImageUrl, isNewModel: isNewModel });
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 if (cloudImageUrl || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
                 
-                setBarcode(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
+                setBarcode(''); setSearchInput(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
             };
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
-                    {isScanning && <BarcodeScanner onScanSuccess={(t) => {setBarcode(t); setIsScanning(false); fetchProductData(t);}} onClose={() => setIsScanning(false)} />}
+                    {isScanning && <BarcodeScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6 relative z-10">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
@@ -391,42 +658,64 @@
                         </h2>
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-navy">Mã Barcode</label>
-                                <div className="flex gap-2">
-                                    <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} onBlur={() => barcode && fetchProductData(barcode)} className="flex-1 bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy font-medium outline-none" placeholder="Nhập mã..." />
-                                    <button onClick={() => setIsScanning(true)} className="bg-navy hover:bg-slate text-sand p-4 rounded-2xl flex items-center justify-center w-14"><Icon name="scan-line" /></button>
-                                </div>
+                                <label className="block text-sm font-semibold text-navy">Sản phẩm cần đặt</label>
+                                <SmartProductSearch 
+                                    value={searchInput}
+                                    onChange={setSearchInput}
+                                    onManualSearch={handleManualSearch}
+                                    masterProducts={masterProducts}
+                                    onProductSelect={handleProductSelected}
+                                    onScanClick={() => setIsScanning(true)}
+                                    isLoading={isLoading}
+                                />
                             </div>
 
                             {product && (
-                                <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex gap-4 items-center animate-in fade-in">
-                                    {localBase64Preview ? <ProductAvatar url={`data:image/jpeg;base64,${localBase64Preview}`} /> : <ProductAvatar url={product.imageUrl} />}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-navy leading-tight truncate">{product.name}</p>
-                                        <p className="text-xs text-slate mt-1 flex items-center gap-1 truncate"><Icon name="map-pin" className="w-3 h-3 flex-shrink-0" /> {product.npp}</p>
+                                <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex flex-col gap-3 animate-in fade-in">
+                                    <div className="flex gap-4 items-center">
+                                        {localBase64Preview ? <ProductAvatar url={`data:image/jpeg;base64,${localBase64Preview}`} /> : <ProductAvatar url={product.imageUrl} />}
+                                        <div className="flex-1 min-w-0">
+                                            {product.name === 'Sản phẩm mới chưa đặt tên' ? (
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Gõ tên sản phẩm mới vào đây..." 
+                                                    onChange={(e) => {
+                                                        setProduct({...product, name: e.target.value});
+                                                        setSearchInput(e.target.value);
+                                                    }}
+                                                    className="w-full bg-white border border-red/40 rounded-xl p-3 font-bold text-base text-navy outline-none shadow-sm"
+                                                />
+                                            ) : (
+                                                <p className="font-bold text-base text-navy leading-tight truncate">{product.name}</p>
+                                            )}
+                                            <p className="text-sm text-slate mt-1 font-mono tracking-wide">{barcode}</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Số lượng dự kiến <span className="text-red">*</span></label>
-                                <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-navy outline-none" placeholder="Nhập số lượng..." />
+                                <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none" placeholder="Nhập số lượng..." />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Nhà Phân Phối <span className="text-red">*</span></label>
-                                <div className="relative">
-                                    <input list="npp-list-order" value={npp} onChange={(e)=>setNpp(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-navy outline-none" placeholder="Tìm NPP..." />
-                                    <datalist id="npp-list-order">{MOCK_NPP_LIST.map(n => <option key={n} value={n} />)}</datalist>
-                                    <Icon name="search" className="absolute right-4 top-4 text-navy/40 w-5 h-5" />
-                                </div>
+                                <AutocompleteNpp 
+                                    value={npp} 
+                                    onChange={setNpp} 
+                                    nppList={MOCK_NPP_LIST} 
+                                    placeholder="Tìm hoặc chọn NPP..."
+                                    inputClass="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-base font-medium text-navy outline-none focus:ring-2 focus:ring-blue transition-all"
+                                    iconClass="absolute right-4 top-4 text-navy/40 w-5 h-5 pointer-events-none"
+                                />
                             </div>
 
                             {product && (
                                 <div className={`p-5 rounded-2xl border ${product.hasImage === false ? 'border-red/30 bg-red/5' : 'border-blue/20 bg-sand/10'}`}>
                                     <label className="flex items-center gap-3 mb-4 cursor-pointer">
                                         <input type="checkbox" checked={isNewModel} onChange={(e)=>setIsNewModel(e.target.checked)} className="w-5 h-5 rounded border-blue/50" />
-                                        <span className="text-sm text-navy font-semibold">Tải lên / Cập nhật ảnh</span>
+                                        <span className="text-sm text-navy font-semibold">Tải lên / Cập nhật ảnh bao bì</span>
                                     </label>
                                     {(product.hasImage === false || isNewModel) && (
                                         <label className="border-2 border-dashed border-blue/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-white cursor-pointer hover:bg-navy/5 transition-all relative overflow-hidden">
@@ -443,7 +732,7 @@
                                 </div>
                             )}
 
-                            <button onClick={handleSubmit} disabled={isUploadingCloud} className={`w-full hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center ${isUploadingCloud ? 'bg-slate/50 cursor-not-allowed' : 'bg-navy'}`}>GỬI YÊU CẦU</button>
+                            <button onClick={handleSubmit} disabled={isUploadingCloud} className={`w-full hover:bg-slate text-sand font-bold py-4 rounded-2xl mt-8 transition-all flex items-center justify-center text-lg shadow-md ${isUploadingCloud ? 'bg-slate/50 cursor-not-allowed' : 'bg-navy'}`}>GỬI YÊU CẦU</button>
                         </div>
                     </div>
                 </div>
@@ -466,10 +755,7 @@
             
             const [itemToDelete, setItemToDelete] = useState(null);
 
-            const showMsg = (text, type = 'error') => { 
-                setMsg({ text, type }); 
-                setTimeout(() => setMsg({ text: '', type: '' }), 3000); 
-            };
+            const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const [activeOrderNppTab, setActiveOrderNppTab] = useState('');
             const [activeReturnTimeTab, setActiveReturnTimeTab] = useState('0 ngày');
@@ -954,6 +1240,46 @@
             const [activeTab, setActiveTab] = useState('candate');
             const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
             
+            const [masterProducts, setMasterProducts] = useState(() => {
+                const cached = localStorage.getItem('ONE_STOP_PRODUCTS_CACHE');
+                return cached ? JSON.parse(cached).products || [] : [];
+            }); 
+
+            useEffect(() => {
+                const loadProductsForToday = async () => {
+                    const todayStr = new Date().toISOString().split('T')[0]; 
+                    const localDataString = localStorage.getItem('ONE_STOP_PRODUCTS_CACHE');
+                    
+                    if (localDataString) {
+                        const localData = JSON.parse(localDataString);
+                        if (localData.date === todayStr && localData.products) {
+                            setMasterProducts(localData.products); 
+                            return; 
+                        }
+                    }
+
+                    try {
+                        const response = await fetch(`${API_URL}?action=getAllProducts`);
+                        const dataFromAPI = await response.json();
+                        
+                        if (dataFromAPI && dataFromAPI.products) {
+                            const dataToSave = {
+                                date: todayStr,
+                                products: dataFromAPI.products
+                            };
+                            localStorage.setItem('ONE_STOP_PRODUCTS_CACHE', JSON.stringify(dataToSave));
+                            setMasterProducts(dataFromAPI.products);
+                        }
+                    } catch (error) {
+                        if (localDataString) {
+                            setMasterProducts(JSON.parse(localDataString).products);
+                        }
+                    }
+                };
+                
+                loadProductsForToday();
+            }, []);
+            
             const [syncQueue, setSyncQueue] = useState([]);
             const [syncTotal, setSyncTotal] = useState(0);
             const [syncProcessed, setSyncProcessed] = useState(0);
@@ -1000,8 +1326,8 @@
                 <div className="bg-sand min-h-screen font-sans pb-20">
                     <SyncIndicator current={syncProcessed} total={syncTotal} />
                     <div className="w-full">
-                        {activeTab === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} />}
-                        {activeTab === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} />}
+                        {activeTab === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} />}
+                        {activeTab === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} />}
                         {activeTab === 'dashboard' && <ViewDashboard addToSyncQueue={addToSyncQueue} />}
                     </div>
                     <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
