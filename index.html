@@ -98,10 +98,10 @@
         ];
 
         const FALLBACK_PRODUCTS = [
-            { barcode: "8935001282655", name: "BÍ ĐAO | WINTER MELON TEA WDF 440ML", npp: "NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)" },
-            { barcode: "8934567890123", name: "BÁNH SANDWICH KINH ĐÔ LÁ DỨA", npp: "NPP VŨ MINH HƯNG - KINH ĐÔ" },
-            { barcode: "8931122334455", name: "NƯỚC SUỐI LAVIE 500ML", npp: "NCC NƯỚC - NƯỚC SUỐI LAVIE" },
-            { barcode: "8930001112223", name: "THUỐC LÁ 555 NGUYÊN BẢN", npp: "NCC THUỐC LÁ 555 - VÂN HẬU (KHOA)" }
+            { barcode: "8935001282655", name: "BÍ ĐAO | WINTER MELON TEA WDF 440ML", npp: "NPP THIÊN THÀNH - ICE+ LATTE (MINH ANH DN)", imageUrl: "" },
+            { barcode: "8934567890123", name: "BÁNH SANDWICH KINH ĐÔ LÁ DỨA", npp: "NPP VŨ MINH HƯNG - KINH ĐÔ", imageUrl: "" },
+            { barcode: "8931122334455", name: "NƯỚC SUỐI LAVIE 500ML", npp: "NCC NƯỚC - NƯỚC SUỐI LAVIE", imageUrl: "" },
+            { barcode: "8930001112223", name: "THUỐC LÁ 555 NGUYÊN BẢN", npp: "NCC THUỐC LÁ 555 - VÂN HẬU (KHOA)", imageUrl: "" }
         ];
 
         const Icon = ({ name, className = '' }) => {
@@ -125,33 +125,42 @@
             );
         };
 
+        // --- CAMERA CẬP NHẬT: Đọc được Mã Vạch dài và Mã Vuông (QR/DataMatrix) ---
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
-                const formats = window.Html5QrcodeSupportedFormats ? 
-                                [window.Html5QrcodeSupportedFormats.EAN_13, window.Html5QrcodeSupportedFormats.EAN_8] : undefined;
+                // Thêm hỗ trợ mã QR và DataMatrix cho tem phụ
+                const formats = window.Html5QrcodeSupportedFormats ? [
+                    window.Html5QrcodeSupportedFormats.EAN_13, 
+                    window.Html5QrcodeSupportedFormats.EAN_8,
+                    window.Html5QrcodeSupportedFormats.QR_CODE,
+                    window.Html5QrcodeSupportedFormats.DATA_MATRIX
+                ] : undefined;
+                
                 const config = { 
                     fps: 15, 
-                    qrbox: { width: 280, height: 100 },
+                    qrbox: { width: 260, height: 180 }, // Nới rộng hộp quét thành hình chữ nhật lai vuông để dễ bắt mã QR
                     formatsToSupport: formats
                 };
                 
                 const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
                 html5QrcodeScanner.render((decodedText) => {
-                    if (/^\d{8,13}$/.test(decodedText)) {
+                    const cleanText = decodedText.trim();
+                    // Chấp nhận chuỗi số từ QR code hoặc mã vạch
+                    if (/^\d+$/.test(cleanText)) {
                         html5QrcodeScanner.clear();
-                        onScanSuccess(decodedText);
+                        onScanSuccess(cleanText);
                     }
                 }, () => {});
                 return () => { html5QrcodeScanner.clear().catch(e => console.error(e)); };
             }, [onScanSuccess]);
 
             return (
-                <div className="fixed inset-0 bg-navy/90 z-[100] flex flex-col items-center justify-center px-4 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-navy/90 z-[100] flex flex-col items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white p-4 rounded-3xl w-full max-w-md shadow-2xl relative">
                         <button onClick={onClose} className="absolute -top-12 right-0 text-white flex items-center bg-navy px-4 py-2 rounded-full border border-white/20">
                             Đóng <Icon name="x" className="ml-2 w-4 h-4" />
                         </button>
-                        <h3 className="text-center font-bold text-navy mb-4">Căn mã vạch vào giữa khung chữ nhật</h3>
+                        <h3 className="text-center font-bold text-navy mb-4">Căn mã vạch / mã QR vào giữa khung</h3>
                         <div id="reader" className="w-full"></div>
                     </div>
                 </div>
@@ -159,8 +168,8 @@
         };
 
         const ProductAvatar = ({ url }) => {
-            if (url) return <img src={url} alt="avatar" className="w-10 h-10 rounded-lg object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
-            return <div className="w-10 h-10 rounded-lg bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-5 h-5 text-slate/40" /></div>;
+            if (url) return <img src={url} alt="avatar" className="w-12 h-12 rounded-xl object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
+            return <div className="w-12 h-12 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-6 h-6 text-slate/40" /></div>;
         };
 
         const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
@@ -211,7 +220,7 @@
             return '60 ngày';
         };
 
-        // --- COMPONENT: TÌM KIẾM NHÀ PHÂN PHỐI (Chống phân biệt hoa thường/có dấu) ---
+        // --- COMPONENT: TÌM KIẾM NHÀ PHÂN PHỐI ---
         const AutocompleteNpp = ({ value, onChange, nppList, placeholder, inputClass, iconClass }) => {
             const [isOpen, setIsOpen] = useState(false);
             const wrapperRef = useRef(null);
@@ -250,7 +259,7 @@
                             {filteredList.map((n, idx) => (
                                 <div 
                                     key={idx} 
-                                    onMouseDown={(e) => e.preventDefault()} // Ngăn chặn ô input bị mất focus trước khi onClick kịp chạy
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => {
                                         onChange(n);
                                         setIsOpen(false);
@@ -266,7 +275,7 @@
             );
         };
 
-        // --- COMPONENT: TÌM KIẾM SẢN PHẨM THÔNG MINH (Auto-complete & Search-on-blur) ---
+        // --- COMPONENT: TÌM KIẾM SẢN PHẨM THÔNG MINH ---
         const SmartProductSearch = ({ value, onChange, onManualSearch, masterProducts, onProductSelect, onScanClick, isLoading }) => {
             const [suggestions, setSuggestions] = useState([]);
             const [isOpen, setIsOpen] = useState(false);
@@ -326,10 +335,10 @@
                             onKeyDown={handleKeyDown}
                             onFocus={() => value && suggestions.length > 0 && setIsOpen(true)}
                             className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base text-navy font-medium outline-none focus:ring-2 focus:ring-blue transition-all" 
-                            placeholder="Quét hoặc điền mã/tên..." 
+                            placeholder="Quét mã vạch hoặc điền mã/tên..." 
                         />
                         {isOpen && suggestions.length > 0 && (
-                            <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-sand/50 overflow-hidden z-50 animate-in fade-in max-h-60 overflow-y-auto">
+                            <div className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-xl border border-sand/50 overflow-hidden z-[70] animate-in fade-in max-h-64 overflow-y-auto">
                                 {suggestions.map((p, idx) => (
                                     <div 
                                         key={idx} 
@@ -338,12 +347,12 @@
                                             setIsOpen(false);
                                             onProductSelect(p);
                                         }}
-                                        className="p-3 hover:bg-sand/30 cursor-pointer border-b border-sand/10 transition-colors flex items-center gap-3"
+                                        className="p-3 hover:bg-sand/30 cursor-pointer border-b border-sand/10 transition-colors flex items-center gap-4"
                                     >
                                         <ProductAvatar url={p.imageUrl} />
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-navy text-sm truncate">{p.name}</p>
-                                            <p className="text-[11px] text-slate font-mono mt-0.5">Mã: {String(p.barcode)}</p>
+                                            <p className="font-bold text-navy text-sm leading-tight truncate">{p.name}</p>
+                                            <p className="text-xs text-slate font-mono mt-0.5 tracking-wide">{String(p.barcode)}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -386,7 +395,7 @@
                 setSearchInput(prod.name);
                 setProduct(prod);
                 setNpp(prod.npp || '');
-                // Auto reset các field khi chuyển sang SP khác để chống nhập liệu sai
+                // Tự động clear form cũ khi chọn SP mới
                 setQty(''); setExpDate(''); setAction('');
             };
 
@@ -409,17 +418,14 @@
                 const cleanCode = scannedCode.trim();
                 if (!cleanCode) return;
                 
-                // Tránh reset data nếu user đang xem đúng SP đó
                 if (product && (String(product.barcode) === cleanCode || product.name === cleanCode)) return;
                 
                 setIsScanning(false);
 
-                // ƯU TIÊN 1: Tra cứu Offline Cache (0ms)
                 const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || p.name.toLowerCase() === cleanCode.toLowerCase());
                 if (foundLocal) {
                     handleProductSelected(foundLocal);
                 } else {
-                    // ƯU TIÊN 2: Lên server nếu đúng format mã vạch
                     if (/^\d+$/.test(cleanCode)) {
                         fetchProductData(cleanCode);
                     } else {
@@ -429,7 +435,6 @@
                 }
             };
 
-            // Tự động tìm khi ô nhập liệu đủ 8 hoặc 13 số
             useEffect(() => {
                 const cleanCode = searchInput.trim();
                 if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) {
@@ -468,7 +473,7 @@
                                 />
                             </div>
                             
-                            {/* LAYOUT CHUẨN: AVATAR - TÊN IN ĐẬM - BARCODE NHỎ */}
+                            {/* LAYOUT GIAO DIỆN CHUẨN MỚI */}
                             {product && (
                                 <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4 animate-in fade-in">
                                     <ProductAvatar url={product.imageUrl} />
@@ -482,21 +487,21 @@
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2 w-full overflow-hidden">
                                     <label className="block text-sm font-semibold text-navy">SL Tồn</label>
-                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none" placeholder="VD: 15" />
+                                    <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none focus:ring-2 focus:ring-blue transition-all" placeholder="VD: 15" />
                                 </div>
                                 <div className="space-y-2 w-full overflow-hidden">
                                     <label className="block text-sm font-semibold text-navy whitespace-nowrap">Ngày Hết Hạn</label>
-                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none" />
+                                    <input type="date" value={expDate} onChange={(e)=>setExpDate(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none focus:ring-2 focus:ring-blue transition-all" />
                                 </div>
                             </div>
 
                             <div className="space-y-3 pt-2">
                                 <label className="block text-sm font-semibold text-navy">Hướng xử lý <span className="text-red">*</span></label>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={() => setAction('doitra')} className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${action === 'doitra' ? 'border-blue bg-blue/10 text-navy' : 'border-blue/20 text-slate'}`}>
+                                    <button onClick={() => setAction('doitra')} className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${action === 'doitra' ? 'border-blue bg-blue/10 text-navy shadow-sm' : 'border-blue/20 text-slate hover:bg-sand/30'}`}>
                                         <Icon name="refresh-ccw" className={action === 'doitra' ? 'text-blue' : 'text-blue/40'} /> Đổi Trả NPP
                                     </button>
-                                    <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy' : 'border-blue/20 text-slate'}`}>
+                                    <button onClick={() => setAction('giamgia')} className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${action === 'giamgia' ? 'border-gold bg-gold/10 text-navy shadow-sm' : 'border-blue/20 text-slate hover:bg-sand/30'}`}>
                                         <Icon name="alert-triangle" className={action === 'giamgia' ? 'text-gold' : 'text-blue/40'} /> Bán Giảm Giá
                                     </button>
                                 </div>
@@ -508,7 +513,7 @@
                                             onChange={setNpp} 
                                             nppList={MOCK_NPP_LIST} 
                                             placeholder="Tìm NPP..."
-                                            inputClass="w-full bg-white border border-blue/50 rounded-xl p-4 pr-10 text-base text-navy font-semibold outline-none shadow-sm focus:ring-2 focus:ring-blue transition-all"
+                                            inputClass="w-full bg-white border border-blue/50 rounded-xl p-4 pr-10 text-base font-semibold text-navy outline-none shadow-sm focus:ring-2 focus:ring-blue transition-all"
                                             iconClass="absolute right-4 top-4 text-navy/40 w-5 h-5 pointer-events-none"
                                         />
                                     </div>
@@ -550,10 +555,8 @@
                 setSearchInput(prod.name);
                 setProduct(prod);
                 setNpp(prod.npp || '');
-                setQty('');
-                setLocalBase64Preview('');
-                setCloudImageUrl('');
-                setIsNewModel(false);
+                // Auto reset các trường ảnh/số lượng khi chọn sp mới
+                setQty(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
             };
 
             const fetchProductData = async (codeToFetch) => {
@@ -578,7 +581,6 @@
             const handleManualSearch = (scannedCode) => {
                 const cleanCode = scannedCode.trim();
                 if (!cleanCode) return;
-                
                 if (product && (String(product.barcode) === cleanCode || product.name === cleanCode)) return;
                 
                 setIsScanning(false);
@@ -670,6 +672,7 @@
                                 />
                             </div>
 
+                            {/* LAYOUT GIAO DIỆN CHUẨN MỚI */}
                             {product && (
                                 <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex flex-col gap-3 animate-in fade-in">
                                     <div className="flex gap-4 items-center">
@@ -683,7 +686,7 @@
                                                         setProduct({...product, name: e.target.value});
                                                         setSearchInput(e.target.value);
                                                     }}
-                                                    className="w-full bg-white border border-red/40 rounded-xl p-3 font-bold text-base text-navy outline-none shadow-sm"
+                                                    className="w-full bg-white border border-red/40 rounded-xl p-3 font-bold text-base text-navy outline-none shadow-sm focus:ring-2 focus:ring-blue transition-all"
                                                 />
                                             ) : (
                                                 <p className="font-bold text-base text-navy leading-tight truncate">{product.name}</p>
@@ -696,7 +699,7 @@
 
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Số lượng dự kiến <span className="text-red">*</span></label>
-                                <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none" placeholder="Nhập số lượng..." />
+                                <input type="number" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base font-bold text-navy outline-none focus:ring-2 focus:ring-blue transition-all" placeholder="Nhập số lượng..." />
                             </div>
 
                             <div className="space-y-2">
