@@ -271,7 +271,6 @@
             );
         };
 
-        // --- COMPONENT TÌM KIẾM THÔNG MINH (Bổ sung Nút Xóa Nhanh) ---
         const SmartProductSearch = ({ value, onChange, onManualSearch, onClear, masterProducts, onProductSelect, onScanClick, isLoading }) => {
             const [suggestions, setSuggestions] = useState([]);
             const [isOpen, setIsOpen] = useState(false);
@@ -333,15 +332,15 @@
                             className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-base text-navy font-medium outline-none focus:ring-2 focus:ring-blue transition-all" 
                             placeholder="Quét mã vạch hoặc điền mã/tên..." 
                         />
-                        {/* NÚT XÓA NHANH BÊN TRONG Ô INPUT */}
+                        
                         {isInputFilled && (
                             <button 
                                 type="button"
-                                onMouseDown={(e) => e.preventDefault()} // Chống mất focus gây chạy lệnh blur
+                                onMouseDown={(e) => e.preventDefault()} 
                                 onClick={() => {
                                     onChange('');
                                     setIsOpen(false);
-                                    if (onClear) onClear(); // Gọi hàm xóa rác ở Parent
+                                    if (onClear) onClear(); 
                                 }}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-navy/30 hover:text-red transition-colors p-2"
                                 title="Xóa tìm kiếm"
@@ -389,7 +388,7 @@
         // ==========================================
         // KHU VỰC CẬN DATE
         // ==========================================
-        const ViewCanDate = ({ addToSyncQueue, masterProducts }) => {
+        const ViewCanDate = ({ addToSyncQueue, masterProducts, updateLocalCache }) => {
             const [barcode, setBarcode] = useState('');
             const [searchInput, setSearchInput] = useState(''); 
             const [product, setProduct] = useState(null);
@@ -411,7 +410,6 @@
                 setQty(''); setExpDate(''); setAction('');
             };
 
-            // HÀM RESET DỮ LIỆU KHI BẤM NÚT (X)
             const handleClearSearch = () => {
                 setSearchInput('');
                 setBarcode('');
@@ -441,11 +439,17 @@
                 const cleanCode = scannedCode.trim();
                 if (!cleanCode) return;
                 
-                if (product && (String(product.barcode) === cleanCode || product.name === cleanCode)) return;
+                // LÁ CHẮN BẢO VỆ DỮ LIỆU: Bỏ qua khoảng trắng và viết hoa/thường
+                if (product && (
+                    String(product.barcode) === cleanCode || 
+                    String(product.name).trim().toLowerCase() === cleanCode.toLowerCase()
+                )) {
+                    return;
+                }
                 
                 setIsScanning(false);
 
-                const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || p.name.toLowerCase() === cleanCode.toLowerCase());
+                const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || String(p.name).toLowerCase() === cleanCode.toLowerCase());
                 if (foundLocal) {
                     handleProductSelected(foundLocal);
                 } else {
@@ -468,10 +472,14 @@
             const handleSubmit = () => {
                 if(!product || !qty || !expDate || !action) return showMsg("Vui lòng điền đủ thông tin!");
                 if(action === 'doitra' && !npp) return showMsg("Vui lòng chọn NPP đổi trả!");
-                addToSyncQueue({ action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp });
-                showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 
-                handleClearSearch(); // Gọi hàm xóa sau khi submit thành công
+                addToSyncQueue({ action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp });
+                
+                // Cập nhật lại bộ nhớ cục bộ (Ghi nhớ NPP)
+                updateLocalCache(barcode, product.name, npp || product.npp, product.imageUrl);
+                
+                showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
+                handleClearSearch();
             };
 
             return (
@@ -555,7 +563,7 @@
         // ==========================================
         // KHU VỰC ĐẶT HÀNG
         // ==========================================
-        const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue, masterProducts }) => {
+        const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue, masterProducts, updateLocalCache }) => {
             const [barcode, setBarcode] = useState('');
             const [searchInput, setSearchInput] = useState('');
             const [product, setProduct] = useState(null);
@@ -581,7 +589,6 @@
                 setQty(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
             };
 
-            // HÀM RESET DỮ LIỆU KHI BẤM NÚT (X)
             const handleClearSearch = () => {
                 setSearchInput('');
                 setBarcode('');
@@ -615,11 +622,18 @@
             const handleManualSearch = (scannedCode) => {
                 const cleanCode = scannedCode.trim();
                 if (!cleanCode) return;
-                if (product && (String(product.barcode) === cleanCode || product.name === cleanCode)) return;
+                
+                // LÁ CHẮN BẢO VỆ DỮ LIỆU
+                if (product && (
+                    String(product.barcode) === cleanCode || 
+                    String(product.name).trim().toLowerCase() === cleanCode.toLowerCase()
+                )) {
+                    return;
+                }
                 
                 setIsScanning(false);
 
-                const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || p.name.toLowerCase() === cleanCode.toLowerCase());
+                const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || String(p.name).toLowerCase() === cleanCode.toLowerCase());
                 if (foundLocal) {
                     handleProductSelected(foundLocal);
                 } else {
@@ -678,10 +692,14 @@
                 const finalName = product.name === 'Sản phẩm mới chưa đặt tên' ? searchInput : product.name;
 
                 addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: finalName, qty: qty, npp: npp, imageUrlToUpdate: cloudImageUrl, isNewModel: isNewModel });
+                
+                // Cập nhật bộ nhớ cục bộ
+                updateLocalCache(barcode, finalName, npp, cloudImageUrl || product.imageUrl);
+                
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 if (cloudImageUrl || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
                 
-                handleClearSearch(); // Reset hoàn toàn sau khi gửi
+                handleClearSearch();
             };
 
             return (
@@ -1359,12 +1377,35 @@
                 });
             };
 
+            // HÀM LƯU BỘ ĐỆM CỤC BỘ (GIÚP GHI NHỚ NPP SAU KHI LƯU)
+            const updateLocalCache = (barcode, name, npp, imageUrl) => {
+                setMasterProducts(prev => {
+                    let newProducts = [...prev];
+                    const idx = newProducts.findIndex(p => String(p.barcode) === String(barcode));
+                    if (idx >= 0) {
+                        newProducts[idx] = { 
+                            ...newProducts[idx], 
+                            name: name || newProducts[idx].name,
+                            npp: npp || newProducts[idx].npp,
+                            imageUrl: imageUrl || newProducts[idx].imageUrl
+                        };
+                    } else {
+                        newProducts.unshift({ barcode, name, npp, imageUrl: imageUrl || '' });
+                    }
+                    localStorage.setItem('ONE_STOP_PRODUCTS_CACHE', JSON.stringify({
+                        date: new Date().toISOString().split('T')[0],
+                        products: newProducts
+                    }));
+                    return newProducts;
+                });
+            };
+
             return (
                 <div className="bg-sand min-h-screen font-sans pb-20">
                     <SyncIndicator current={syncProcessed} total={syncTotal} />
                     <div className="w-full">
-                        {activeTab === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} />}
-                        {activeTab === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} />}
+                        {activeTab === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} updateLocalCache={updateLocalCache} />}
+                        {activeTab === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} updateLocalCache={updateLocalCache} />}
                         {activeTab === 'dashboard' && <ViewDashboard addToSyncQueue={addToSyncQueue} />}
                     </div>
                     <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
