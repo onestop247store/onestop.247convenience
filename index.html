@@ -125,10 +125,8 @@
             );
         };
 
-        // --- CAMERA CẬP NHẬT: Đọc được Mã Vạch dài và Mã Vuông (QR/DataMatrix) ---
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
-                // Thêm hỗ trợ mã QR và DataMatrix cho tem phụ
                 const formats = window.Html5QrcodeSupportedFormats ? [
                     window.Html5QrcodeSupportedFormats.EAN_13, 
                     window.Html5QrcodeSupportedFormats.EAN_8,
@@ -138,14 +136,13 @@
                 
                 const config = { 
                     fps: 15, 
-                    qrbox: { width: 260, height: 180 }, // Nới rộng hộp quét thành hình chữ nhật lai vuông để dễ bắt mã QR
+                    qrbox: { width: 260, height: 180 }, 
                     formatsToSupport: formats
                 };
                 
                 const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
                 html5QrcodeScanner.render((decodedText) => {
                     const cleanText = decodedText.trim();
-                    // Chấp nhận chuỗi số từ QR code hoặc mã vạch
                     if (/^\d+$/.test(cleanText)) {
                         html5QrcodeScanner.clear();
                         onScanSuccess(cleanText);
@@ -220,7 +217,6 @@
             return '60 ngày';
         };
 
-        // --- COMPONENT: TÌM KIẾM NHÀ PHÂN PHỐI ---
         const AutocompleteNpp = ({ value, onChange, nppList, placeholder, inputClass, iconClass }) => {
             const [isOpen, setIsOpen] = useState(false);
             const wrapperRef = useRef(null);
@@ -275,8 +271,8 @@
             );
         };
 
-        // --- COMPONENT: TÌM KIẾM SẢN PHẨM THÔNG MINH ---
-        const SmartProductSearch = ({ value, onChange, onManualSearch, masterProducts, onProductSelect, onScanClick, isLoading }) => {
+        // --- COMPONENT TÌM KIẾM THÔNG MINH (Bổ sung Nút Xóa Nhanh) ---
+        const SmartProductSearch = ({ value, onChange, onManualSearch, onClear, masterProducts, onProductSelect, onScanClick, isLoading }) => {
             const [suggestions, setSuggestions] = useState([]);
             const [isOpen, setIsOpen] = useState(false);
             const wrapperRef = useRef(null);
@@ -334,9 +330,26 @@
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}
                             onFocus={() => value && suggestions.length > 0 && setIsOpen(true)}
-                            className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-base text-navy font-medium outline-none focus:ring-2 focus:ring-blue transition-all" 
+                            className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-base text-navy font-medium outline-none focus:ring-2 focus:ring-blue transition-all" 
                             placeholder="Quét mã vạch hoặc điền mã/tên..." 
                         />
+                        {/* NÚT XÓA NHANH BÊN TRONG Ô INPUT */}
+                        {isInputFilled && (
+                            <button 
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()} // Chống mất focus gây chạy lệnh blur
+                                onClick={() => {
+                                    onChange('');
+                                    setIsOpen(false);
+                                    if (onClear) onClear(); // Gọi hàm xóa rác ở Parent
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-navy/30 hover:text-red transition-colors p-2"
+                                title="Xóa tìm kiếm"
+                            >
+                                <Icon name="x-circle" className="w-5 h-5" />
+                            </button>
+                        )}
+                        
                         {isOpen && suggestions.length > 0 && (
                             <div className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-xl border border-sand/50 overflow-hidden z-[70] animate-in fade-in max-h-64 overflow-y-auto">
                                 {suggestions.map((p, idx) => (
@@ -395,8 +408,18 @@
                 setSearchInput(prod.name);
                 setProduct(prod);
                 setNpp(prod.npp || '');
-                // Tự động clear form cũ khi chọn SP mới
                 setQty(''); setExpDate(''); setAction('');
+            };
+
+            // HÀM RESET DỮ LIỆU KHI BẤM NÚT (X)
+            const handleClearSearch = () => {
+                setSearchInput('');
+                setBarcode('');
+                setProduct(null);
+                setQty(''); 
+                setExpDate(''); 
+                setAction(''); 
+                setNpp('');
             };
 
             const fetchProductData = async (codeToFetch) => {
@@ -448,7 +471,7 @@
                 addToSyncQueue({ action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp });
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 
-                setBarcode(''); setSearchInput(''); setProduct(null); setQty(''); setExpDate(''); setAction(''); setNpp('');
+                handleClearSearch(); // Gọi hàm xóa sau khi submit thành công
             };
 
             return (
@@ -466,6 +489,7 @@
                                     value={searchInput}
                                     onChange={setSearchInput}
                                     onManualSearch={handleManualSearch}
+                                    onClear={handleClearSearch}
                                     masterProducts={masterProducts}
                                     onProductSelect={handleProductSelected}
                                     onScanClick={() => setIsScanning(true)}
@@ -473,7 +497,6 @@
                                 />
                             </div>
                             
-                            {/* LAYOUT GIAO DIỆN CHUẨN MỚI */}
                             {product && (
                                 <div className="bg-navy/5 p-4 rounded-2xl border border-navy/10 flex items-center gap-4 animate-in fade-in">
                                     <ProductAvatar url={product.imageUrl} />
@@ -555,8 +578,19 @@
                 setSearchInput(prod.name);
                 setProduct(prod);
                 setNpp(prod.npp || '');
-                // Auto reset các trường ảnh/số lượng khi chọn sp mới
                 setQty(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
+            };
+
+            // HÀM RESET DỮ LIỆU KHI BẤM NÚT (X)
+            const handleClearSearch = () => {
+                setSearchInput('');
+                setBarcode('');
+                setProduct(null);
+                setQty(''); 
+                setNpp(''); 
+                setIsNewModel(false); 
+                setLocalBase64Preview(''); 
+                setCloudImageUrl('');
             };
 
             const fetchProductData = async (codeToFetch) => {
@@ -647,7 +681,7 @@
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 if (cloudImageUrl || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
                 
-                setBarcode(''); setSearchInput(''); setProduct(null); setQty(''); setNpp(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
+                handleClearSearch(); // Reset hoàn toàn sau khi gửi
             };
 
             return (
@@ -665,6 +699,7 @@
                                     value={searchInput}
                                     onChange={setSearchInput}
                                     onManualSearch={handleManualSearch}
+                                    onClear={handleClearSearch}
                                     masterProducts={masterProducts}
                                     onProductSelect={handleProductSelected}
                                     onScanClick={() => setIsScanning(true)}
@@ -672,7 +707,6 @@
                                 />
                             </div>
 
-                            {/* LAYOUT GIAO DIỆN CHUẨN MỚI */}
                             {product && (
                                 <div className="bg-sand/30 p-4 rounded-2xl border border-sand flex flex-col gap-3 animate-in fade-in">
                                     <div className="flex gap-4 items-center">
