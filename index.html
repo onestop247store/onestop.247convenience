@@ -37,9 +37,24 @@
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; display: none; } }
         .toast-message { animation: fadeOut 3s forwards; }
         
-        #reader { width: 100%; border-radius: 1rem; overflow: hidden; border: none !important; }
-        #reader__scan_region { background: white; }
-        #reader__dashboard_section_csr button { background-color: #103F67; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; margin-top: 10px; border: none; }
+        #reader { width: 100% !important; border: none !important; background: transparent !important; }
+        #reader video { object-fit: cover !important; border-radius: 1rem; width: 100%; }
+        #reader * { box-sizing: border-box !important; }
+        #reader__dashboard_section_csr { padding: 15px 10px !important; width: 100% !important; }
+        #reader__dashboard_section_csr span { font-size: 14px !important; text-align: center; display: block; margin-bottom: 10px; color: #103F67; font-weight: 600; }
+        #html5-qrcode-button-camera-permission { 
+            background-color: #103F67 !important; color: white !important; 
+            padding: 12px 20px !important; border-radius: 12px !important; 
+            font-weight: bold !important; border: none !important; 
+            width: 100% !important; margin: 0 auto !important; display: block !important;
+            box-shadow: 0 4px 6px rgba(16, 63, 103, 0.2) !important;
+        }
+        #html5-qrcode-anchor-scan-type-change { 
+            text-decoration: none !important; color: #39A8D9 !important; 
+            font-weight: bold !important; display: inline-block !important; 
+            margin-top: 15px !important; padding: 10px !important;
+        }
+        #reader__dashboard_section_swaplink { text-align: center !important; margin-top: 10px !important; }
     </style>
 </head>
 <body>
@@ -125,6 +140,11 @@
             );
         };
 
+        const ProductAvatar = ({ url }) => {
+            if (url) return <img src={url} alt="avatar" className="w-12 h-12 rounded-xl object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
+            return <div className="w-12 h-12 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-6 h-6 text-slate/40" /></div>;
+        };
+
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
                 const formats = window.Html5QrcodeSupportedFormats ? [
@@ -136,37 +156,38 @@
                 
                 const config = { 
                     fps: 15, 
-                    qrbox: { width: 260, height: 180 }, 
-                    formatsToSupport: formats
+                    qrbox: (viewfinderWidth, viewfinderHeight) => {
+                        return {
+                            width: Math.min(viewfinderWidth * 0.8, 280),
+                            height: Math.min(viewfinderHeight * 0.6, 200)
+                        };
+                    },
+                    formatsToSupport: formats 
                 };
                 
                 const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+                
                 html5QrcodeScanner.render((decodedText) => {
-                    const cleanText = decodedText.trim();
-                    if (/^\d+$/.test(cleanText)) {
+                    if (/^\d+$/.test(decodedText.trim())) {
                         html5QrcodeScanner.clear();
-                        onScanSuccess(cleanText);
+                        onScanSuccess(decodedText.trim());
                     }
                 }, () => {});
-                return () => { html5QrcodeScanner.clear().catch(e => console.error(e)); };
+                return () => { html5QrcodeScanner.clear().catch(e=>console.error(e)); };
             }, [onScanSuccess]);
 
             return (
-                <div className="fixed inset-0 bg-navy/90 z-[100] flex flex-col items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white p-4 rounded-3xl w-full max-w-md shadow-2xl relative">
-                        <button onClick={onClose} className="absolute -top-12 right-0 text-white flex items-center bg-navy px-4 py-2 rounded-full border border-white/20">
-                            Đóng <Icon name="x" className="ml-2 w-4 h-4" />
+                <div className="fixed inset-0 bg-navy/90 z-[100] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white p-4 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden flex flex-col items-center">
+                        <button onClick={onClose} className="absolute z-50 top-3 right-3 text-slate hover:bg-sand/30 p-2 rounded-full transition-colors">
+                            <Icon name="x" className="w-6 h-6" />
                         </button>
-                        <h3 className="text-center font-bold text-navy mb-4">Căn mã vạch / mã QR vào giữa khung</h3>
-                        <div id="reader" className="w-full"></div>
+                        <div className="w-12 h-1.5 bg-sand rounded-full mb-4 mt-2"></div>
+                        <h3 className="text-center font-bold text-navy mb-4 w-full">Camera Quét Mã</h3>
+                        <div id="reader" className="w-full relative rounded-2xl overflow-hidden min-h-[300px] flex items-center justify-center bg-sand/10"></div>
                     </div>
                 </div>
             );
-        };
-
-        const ProductAvatar = ({ url }) => {
-            if (url) return <img src={url} alt="avatar" className="w-12 h-12 rounded-xl object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
-            return <div className="w-12 h-12 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-6 h-6 text-slate/40" /></div>;
         };
 
         const GaugeChart = ({ value, max, label, subLabelLeft, subLabelRight, color }) => {
@@ -208,13 +229,15 @@
             );
         };
 
-        const TIME_BUCKETS = ['60 ngày', '30 ngày', '15 ngày', '07 ngày', '0 ngày'];
+        const TIME_BUCKETS = ['90 ngày', '60 ngày', '45 ngày', '30 ngày', '15 ngày', '07 ngày', '0 ngày'];
         const getExpBucket = (days) => {
             if (days <= 0) return '0 ngày';
             if (days <= 7) return '07 ngày';
             if (days <= 15) return '15 ngày';
             if (days <= 30) return '30 ngày';
-            return '60 ngày';
+            if (days <= 45) return '45 ngày';
+            if (days <= 60) return '60 ngày';
+            return '90 ngày';
         };
 
         const AutocompleteNpp = ({ value, onChange, nppList, placeholder, inputClass, iconClass }) => {
@@ -223,16 +246,13 @@
 
             useEffect(() => {
                 function handleClickOutside(event) {
-                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { 
-                        setIsOpen(false); 
-                    }
+                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { setIsOpen(false); }
                 }
                 document.addEventListener("mousedown", handleClickOutside);
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             }, []);
 
             const normalizeStr = (str) => str ? String(str).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : '';
-
             const filteredList = nppList.filter(n => {
                 if (!value) return true;
                 return normalizeStr(n).includes(normalizeStr(value));
@@ -241,29 +261,16 @@
             return (
                 <div ref={wrapperRef} className="relative w-full">
                     <input 
-                        type="text" 
-                        value={value} 
-                        onChange={(e) => { onChange(e.target.value); setIsOpen(true); }}
-                        onFocus={() => setIsOpen(true)}
-                        className={inputClass} 
-                        placeholder={placeholder} 
+                        type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); }}
+                        onFocus={() => setIsOpen(true)} className={inputClass} placeholder={placeholder} 
                     />
                     <Icon name="search" className={iconClass} />
-                    
                     {isOpen && filteredList.length > 0 && (
                         <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-sand/50 overflow-hidden z-[60] animate-in fade-in max-h-56 overflow-y-auto">
                             {filteredList.map((n, idx) => (
-                                <div 
-                                    key={idx} 
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                        onChange(n);
-                                        setIsOpen(false);
-                                    }}
+                                <div key={idx} onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange(n); setIsOpen(false); }}
                                     className="p-4 hover:bg-sand/30 cursor-pointer border-b border-sand/10 transition-colors text-base font-semibold text-navy truncate"
-                                >
-                                    {n}
-                                </div>
+                                >{n}</div>
                             ))}
                         </div>
                     )}
@@ -280,9 +287,7 @@
                 function handleClickOutside(event) {
                     if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { 
                         setIsOpen(false); 
-                        if (value && value.trim() !== '' && onManualSearch) {
-                            onManualSearch(value.trim());
-                        }
+                        if (value && value.trim() !== '' && onManualSearch) onManualSearch(value.trim());
                     }
                 }
                 document.addEventListener("mousedown", handleClickOutside);
@@ -292,13 +297,9 @@
             const handleInputChange = (e) => {
                 const val = e.target.value;
                 onChange(val);
-
-                if (val.trim() === '') { 
-                    setSuggestions([]); setIsOpen(false); return; 
-                }
+                if (val.trim() === '') { setSuggestions([]); setIsOpen(false); return; }
 
                 const cleanVal = val.toLowerCase().trim();
-                
                 const filtered = masterProducts.filter(p => {
                     const nameStr = p.name ? String(p.name).toLowerCase() : '';
                     const bcStr = p.barcode ? String(p.barcode) : '';
@@ -312,9 +313,7 @@
             const handleKeyDown = (e) => {
                 if (e.key === 'Enter') {
                     setIsOpen(false);
-                    if (value && value.trim() !== '' && onManualSearch) {
-                        onManualSearch(value.trim());
-                    }
+                    if (value && value.trim() !== '' && onManualSearch) onManualSearch(value.trim());
                 }
             };
 
@@ -324,41 +323,22 @@
                 <div ref={wrapperRef} className="relative w-full flex gap-2">
                     <div className="relative flex-1">
                         <input 
-                            type="text" 
-                            value={value} 
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
+                            type="text" value={value} onChange={handleInputChange} onKeyDown={handleKeyDown}
                             onFocus={() => value && suggestions.length > 0 && setIsOpen(true)}
                             className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-base text-navy font-medium outline-none focus:ring-2 focus:ring-blue transition-all" 
                             placeholder="Quét mã vạch hoặc điền mã/tên..." 
                         />
-                        
                         {isInputFilled && (
-                            <button 
-                                type="button"
-                                onMouseDown={(e) => e.preventDefault()} 
-                                onClick={() => {
-                                    onChange('');
-                                    setIsOpen(false);
-                                    if (onClear) onClear(); 
-                                }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-navy/30 hover:text-red transition-colors p-2"
-                                title="Xóa tìm kiếm"
+                            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange(''); setIsOpen(false); if (onClear) onClear(); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-navy/30 hover:text-red transition-colors p-2" title="Xóa tìm kiếm"
                             >
                                 <Icon name="x-circle" className="w-5 h-5" />
                             </button>
                         )}
-                        
                         {isOpen && suggestions.length > 0 && (
                             <div className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-xl border border-sand/50 overflow-hidden z-[70] animate-in fade-in max-h-64 overflow-y-auto">
                                 {suggestions.map((p, idx) => (
-                                    <div 
-                                        key={idx} 
-                                        onMouseDown={(e) => e.preventDefault()}
-                                        onClick={() => {
-                                            setIsOpen(false);
-                                            onProductSelect(p);
-                                        }}
+                                    <div key={idx} onMouseDown={(e) => e.preventDefault()} onClick={() => { setIsOpen(false); onProductSelect(p); }}
                                         className="p-3 hover:bg-sand/30 cursor-pointer border-b border-sand/10 transition-colors flex items-center gap-4"
                                     >
                                         <ProductAvatar url={p.imageUrl} />
@@ -385,9 +365,6 @@
             );
         };
 
-        // ==========================================
-        // KHU VỰC CẬN DATE
-        // ==========================================
         const ViewCanDate = ({ addToSyncQueue, masterProducts, updateLocalCache }) => {
             const [barcode, setBarcode] = useState('');
             const [searchInput, setSearchInput] = useState(''); 
@@ -403,21 +380,14 @@
             const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const handleProductSelected = (prod) => {
-                setBarcode(prod.barcode);
-                setSearchInput(prod.name);
-                setProduct(prod);
-                setNpp(prod.npp || '');
+                setBarcode(prod.barcode); setSearchInput(prod.name);
+                setProduct(prod); setNpp(prod.npp || '');
                 setQty(''); setExpDate(''); setAction('');
             };
 
             const handleClearSearch = () => {
-                setSearchInput('');
-                setBarcode('');
-                setProduct(null);
-                setQty(''); 
-                setExpDate(''); 
-                setAction(''); 
-                setNpp('');
+                setSearchInput(''); setBarcode(''); setProduct(null);
+                setQty(''); setExpDate(''); setAction(''); setNpp('');
             };
 
             const fetchProductData = async (codeToFetch) => {
@@ -425,13 +395,8 @@
                 try {
                     const response = await fetch(`${API_URL}?action=scan&barcode=${codeToFetch}`);
                     const data = await response.json();
-                    if(data.found) { 
-                        handleProductSelected({ ...data, barcode: codeToFetch }); 
-                    } 
-                    else { 
-                        showMsg("Không tìm thấy sản phẩm trên máy chủ!"); 
-                        setProduct(null); 
-                    }
+                    if(data.found) { handleProductSelected({ ...data, barcode: codeToFetch }); } 
+                    else { showMsg("Không tìm thấy sản phẩm trên máy chủ!"); setProduct(null); }
                 } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
             };
 
@@ -439,34 +404,21 @@
                 const cleanCode = scannedCode.trim();
                 if (!cleanCode) return;
                 
-                // LÁ CHẮN BẢO VỆ DỮ LIỆU: Bỏ qua khoảng trắng và viết hoa/thường
-                if (product && (
-                    String(product.barcode) === cleanCode || 
-                    String(product.name).trim().toLowerCase() === cleanCode.toLowerCase()
-                )) {
-                    return;
-                }
-                
+                if (product && (String(product.barcode) === cleanCode || String(product.name).trim().toLowerCase() === cleanCode.toLowerCase())) return;
                 setIsScanning(false);
 
                 const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || String(p.name).toLowerCase() === cleanCode.toLowerCase());
                 if (foundLocal) {
                     handleProductSelected(foundLocal);
                 } else {
-                    if (/^\d+$/.test(cleanCode)) {
-                        fetchProductData(cleanCode);
-                    } else {
-                        showMsg("Không tìm thấy sản phẩm hợp lệ!");
-                        setProduct(null);
-                    }
+                    if (/^\d+$/.test(cleanCode)) { fetchProductData(cleanCode); } 
+                    else { showMsg("Không tìm thấy sản phẩm hợp lệ!"); setProduct(null); }
                 }
             };
 
             useEffect(() => {
                 const cleanCode = searchInput.trim();
-                if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) {
-                    handleManualSearch(cleanCode);
-                }
+                if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) handleManualSearch(cleanCode);
             }, [searchInput]);
 
             const handleSubmit = () => {
@@ -474,8 +426,6 @@
                 if(action === 'doitra' && !npp) return showMsg("Vui lòng chọn NPP đổi trả!");
                 
                 addToSyncQueue({ action: "submitCanDate", barcode: barcode, name: product.name, qty: qty, expDate: expDate, handlingType: action === 'doitra' ? "Đổi Trả" : "Giảm Giá", npp: npp });
-                
-                // Cập nhật lại bộ nhớ cục bộ (Ghi nhớ NPP)
                 updateLocalCache(barcode, product.name, npp || product.npp, product.imageUrl);
                 
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
@@ -494,14 +444,8 @@
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Kiểm tra sản phẩm</label>
                                 <SmartProductSearch 
-                                    value={searchInput}
-                                    onChange={setSearchInput}
-                                    onManualSearch={handleManualSearch}
-                                    onClear={handleClearSearch}
-                                    masterProducts={masterProducts}
-                                    onProductSelect={handleProductSelected}
-                                    onScanClick={() => setIsScanning(true)}
-                                    isLoading={isLoading}
+                                    value={searchInput} onChange={setSearchInput} onManualSearch={handleManualSearch} onClear={handleClearSearch}
+                                    masterProducts={masterProducts} onProductSelect={handleProductSelected} onScanClick={() => setIsScanning(true)} isLoading={isLoading}
                                 />
                             </div>
                             
@@ -540,10 +484,7 @@
                                     <div className="space-y-2 mt-4 p-4 bg-blue/5 border border-blue/20 rounded-2xl animate-in fade-in">
                                         <label className="block text-sm font-semibold text-navy">Chọn NPP Đổi Trả <span className="text-red">*</span></label>
                                         <AutocompleteNpp 
-                                            value={npp} 
-                                            onChange={setNpp} 
-                                            nppList={MOCK_NPP_LIST} 
-                                            placeholder="Tìm NPP..."
+                                            value={npp} onChange={setNpp} nppList={MOCK_NPP_LIST} placeholder="Tìm NPP..."
                                             inputClass="w-full bg-white border border-blue/50 rounded-xl p-4 pr-10 text-base font-semibold text-navy outline-none shadow-sm focus:ring-2 focus:ring-blue transition-all"
                                             iconClass="absolute right-4 top-4 text-navy/40 w-5 h-5 pointer-events-none"
                                         />
@@ -560,9 +501,6 @@
             );
         };
 
-        // ==========================================
-        // KHU VỰC ĐẶT HÀNG
-        // ==========================================
         const ViewDatHang = ({ locallyUploadedImages, setLocallyUploadedImages, addToSyncQueue, masterProducts, updateLocalCache }) => {
             const [barcode, setBarcode] = useState('');
             const [searchInput, setSearchInput] = useState('');
@@ -582,22 +520,14 @@
             const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
             const handleProductSelected = (prod) => {
-                setBarcode(prod.barcode);
-                setSearchInput(prod.name);
-                setProduct(prod);
-                setNpp(prod.npp || '');
+                setBarcode(prod.barcode); setSearchInput(prod.name);
+                setProduct(prod); setNpp(prod.npp || '');
                 setQty(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
             };
 
             const handleClearSearch = () => {
-                setSearchInput('');
-                setBarcode('');
-                setProduct(null);
-                setQty(''); 
-                setNpp(''); 
-                setIsNewModel(false); 
-                setLocalBase64Preview(''); 
-                setCloudImageUrl('');
+                setSearchInput(''); setBarcode(''); setProduct(null); setQty(''); 
+                setNpp(''); setIsNewModel(false); setLocalBase64Preview(''); setCloudImageUrl('');
             };
 
             const fetchProductData = async (codeToFetch) => {
@@ -607,13 +537,10 @@
                     const data = await response.json();
                     if (locallyUploadedImages[codeToFetch]) data.hasImage = true;
                     
-                    if(data.found) { 
-                        handleProductSelected({ ...data, barcode: codeToFetch }); 
-                    } else { 
-                        setBarcode(codeToFetch);
-                        setProduct({ barcode: codeToFetch, name: 'Sản phẩm mới chưa đặt tên', npp: '', hasImage: false });
-                        setSearchInput(codeToFetch);
-                        setQty(''); setNpp('');
+                    if(data.found) { handleProductSelected({ ...data, barcode: codeToFetch }); } 
+                    else { 
+                        setBarcode(codeToFetch); setProduct({ barcode: codeToFetch, name: 'Sản phẩm mới chưa đặt tên', npp: '', hasImage: false });
+                        setSearchInput(codeToFetch); setQty(''); setNpp('');
                         showMsg("Mã vạch mới! Vui lòng tự bổ sung Tên và chọn NPP.", "warning");
                     }
                 } catch (error) { showMsg("Lỗi kết nối máy chủ!"); } finally { setIsLoading(false); }
@@ -623,34 +550,21 @@
                 const cleanCode = scannedCode.trim();
                 if (!cleanCode) return;
                 
-                // LÁ CHẮN BẢO VỆ DỮ LIỆU
-                if (product && (
-                    String(product.barcode) === cleanCode || 
-                    String(product.name).trim().toLowerCase() === cleanCode.toLowerCase()
-                )) {
-                    return;
-                }
-                
+                if (product && (String(product.barcode) === cleanCode || String(product.name).trim().toLowerCase() === cleanCode.toLowerCase())) return;
                 setIsScanning(false);
 
                 const foundLocal = masterProducts.find(p => String(p.barcode) === cleanCode || String(p.name).toLowerCase() === cleanCode.toLowerCase());
                 if (foundLocal) {
                     handleProductSelected(foundLocal);
                 } else {
-                    if (/^\d+$/.test(cleanCode)) {
-                        fetchProductData(cleanCode);
-                    } else {
-                        showMsg("Không tìm thấy sản phẩm hợp lệ!");
-                        setProduct(null);
-                    }
+                    if (/^\d+$/.test(cleanCode)) { fetchProductData(cleanCode); } 
+                    else { showMsg("Không tìm thấy sản phẩm hợp lệ!"); setProduct(null); }
                 }
             };
 
             useEffect(() => {
                 const cleanCode = searchInput.trim();
-                if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) {
-                    handleManualSearch(cleanCode);
-                }
+                if ((cleanCode.length === 8 || cleanCode.length === 13) && /^\d+$/.test(cleanCode)) handleManualSearch(cleanCode);
             }, [searchInput]);
 
             const handleImageUpload = (e) => {
@@ -666,17 +580,14 @@
                             canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
                             
                             const base64Data = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-                            setLocalBase64Preview(base64Data);
-                            setIsUploadingCloud(true);
+                            setLocalBase64Preview(base64Data); setIsUploadingCloud(true);
                             
-                            const formData = new FormData();
-                            formData.append("image", base64Data);
+                            const formData = new FormData(); formData.append("image", base64Data);
 
                             fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData })
                             .then(res => res.json())
                             .then(result => {
-                                if(result.success) { setCloudImageUrl(result.data.url); } 
-                                else { showMsg("Lỗi dịch vụ ảnh cloud!"); }
+                                if(result.success) { setCloudImageUrl(result.data.url); } else { showMsg("Lỗi dịch vụ ảnh cloud!"); }
                             })
                             .catch(err => showMsg("Lỗi kết nối khi tải ảnh!"))
                             .finally(() => setIsUploadingCloud(false));
@@ -690,15 +601,11 @@
                 if(isUploadingCloud) return showMsg("Vui lòng chờ ảnh tải lên xong!", "warning");
 
                 const finalName = product.name === 'Sản phẩm mới chưa đặt tên' ? searchInput : product.name;
-
                 addToSyncQueue({ action: "submitDatHang", barcode: barcode, name: finalName, qty: qty, npp: npp, imageUrlToUpdate: cloudImageUrl, isNewModel: isNewModel });
-                
-                // Cập nhật bộ nhớ cục bộ
                 updateLocalCache(barcode, finalName, npp, cloudImageUrl || product.imageUrl);
                 
                 showMsg("Đã lưu tạm! Đang đồng bộ...", "success");
                 if (cloudImageUrl || isNewModel) setLocallyUploadedImages(prev => ({ ...prev, [barcode]: true }));
-                
                 handleClearSearch();
             };
 
@@ -714,14 +621,8 @@
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Sản phẩm cần đặt</label>
                                 <SmartProductSearch 
-                                    value={searchInput}
-                                    onChange={setSearchInput}
-                                    onManualSearch={handleManualSearch}
-                                    onClear={handleClearSearch}
-                                    masterProducts={masterProducts}
-                                    onProductSelect={handleProductSelected}
-                                    onScanClick={() => setIsScanning(true)}
-                                    isLoading={isLoading}
+                                    value={searchInput} onChange={setSearchInput} onManualSearch={handleManualSearch} onClear={handleClearSearch}
+                                    masterProducts={masterProducts} onProductSelect={handleProductSelected} onScanClick={() => setIsScanning(true)} isLoading={isLoading}
                                 />
                             </div>
 
@@ -732,12 +633,8 @@
                                         <div className="flex-1 min-w-0">
                                             {product.name === 'Sản phẩm mới chưa đặt tên' ? (
                                                 <input 
-                                                    type="text" 
-                                                    placeholder="Gõ tên sản phẩm mới vào đây..." 
-                                                    onChange={(e) => {
-                                                        setProduct({...product, name: e.target.value});
-                                                        setSearchInput(e.target.value);
-                                                    }}
+                                                    type="text" placeholder="Gõ tên sản phẩm mới vào đây..." 
+                                                    onChange={(e) => { setProduct({...product, name: e.target.value}); setSearchInput(e.target.value); }}
                                                     className="w-full bg-white border border-red/40 rounded-xl p-3 font-bold text-base text-navy outline-none shadow-sm focus:ring-2 focus:ring-blue transition-all"
                                                 />
                                             ) : (
@@ -757,10 +654,7 @@
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-navy">Nhà Phân Phối <span className="text-red">*</span></label>
                                 <AutocompleteNpp 
-                                    value={npp} 
-                                    onChange={setNpp} 
-                                    nppList={MOCK_NPP_LIST} 
-                                    placeholder="Tìm hoặc chọn NPP..."
+                                    value={npp} onChange={setNpp} nppList={MOCK_NPP_LIST} placeholder="Tìm hoặc chọn NPP..."
                                     inputClass="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 pr-12 text-base font-medium text-navy outline-none focus:ring-2 focus:ring-blue transition-all"
                                     iconClass="absolute right-4 top-4 text-navy/40 w-5 h-5 pointer-events-none"
                                 />
@@ -809,6 +703,7 @@
             const [msg, setMsg] = useState({ text: '', type: '' });
             
             const [itemToDelete, setItemToDelete] = useState(null);
+            const [itemToMove, setItemToMove] = useState(null); // Modal Chuyển sang Giảm giá
 
             const showMsg = (text, type = 'error') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3000); };
 
@@ -832,9 +727,7 @@
                     }
                 } catch (error) { 
                     setApiError("Lỗi kết nối máy chủ. Vui lòng kiểm tra lại link API."); 
-                } finally { 
-                    setIsLoading(false); 
-                }
+                } finally { setIsLoading(false); }
             };
 
             useEffect(() => {
@@ -846,8 +739,7 @@
 
             const groupedOrders = orders.reduce((acc, order) => {
                 if (!acc[order.npp]) acc[order.npp] = []; 
-                acc[order.npp].push(order); 
-                return acc;
+                acc[order.npp].push(order); return acc;
             }, {});
 
             const sortedNppOrderTabs = Object.keys(groupedOrders).map(npp => ({
@@ -868,19 +760,18 @@
                    if (!availableBuckets.includes(activeReturnTimeTab)) {
                        for (let i = TIME_BUCKETS.length - 1; i >= 0; i--) {
                            if (availableBuckets.includes(TIME_BUCKETS[i])) { 
-                               setActiveReturnTimeTab(TIME_BUCKETS[i]); 
-                               break; 
+                               setActiveReturnTimeTab(TIME_BUCKETS[i]); break; 
                            }
                        }
                    }
                 }
             }, [returns]);
 
-            const filteredReturns = returns.filter(r => getExpBucket(r.daysLeft) === activeReturnTimeTab);
+            // Lọc returns: Đảm bảo chỉ hiển thị hàng <= 90 ngày
+            const filteredReturns = returns.filter(r => r.daysLeft <= 90 && getExpBucket(r.daysLeft) === activeReturnTimeTab);
             const groupedReturns = filteredReturns.reduce((acc, ret) => {
                 if (!acc[ret.npp]) acc[ret.npp] = []; 
-                acc[ret.npp].push(ret); 
-                return acc;
+                acc[ret.npp].push(ret); return acc;
             }, {});
 
             useEffect(() => {
@@ -897,9 +788,7 @@
                 addToSyncQueue({ action: "updateReturnStatus", id: id, status: newStatus });
             };
 
-            const confirmDelete = (id, name, type) => { 
-                setItemToDelete({ id, name, type }); 
-            };
+            const confirmDelete = (id, name, type) => { setItemToDelete({ id, name, type }); };
 
             const executeDelete = () => {
                 if (!itemToDelete) return;
@@ -909,6 +798,16 @@
                 addToSyncQueue({ action: "deleteReturn", id: itemToDelete.id });
                 showMsg("Đã xóa. Đang đồng bộ...", "success");
                 setItemToDelete(null);
+            };
+
+            const executeMoveToDiscount = () => {
+                if (!itemToMove) return;
+                setReturns(returns.filter(r => r.id !== itemToMove.id)); // Ẩn khỏi bảng đổi trả ngay lập tức
+                addToSyncQueue({ action: "moveToDiscount", id: itemToMove.id }); // Bắn API cập nhật
+                
+                showMsg("Đã chuyển sang bảng Giảm Giá!", "success");
+                setItemToMove(null);
+                setTimeout(fetchDashboardData, 2000); // Fetch lại data sau 2s để thấy SP hiện ở bảng dưới
             };
             
             const handleCloseOrders = (nppName) => {
@@ -976,6 +875,7 @@
                 <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6 pb-28 animate-in fade-in relative">
                     <Toast message={msg.text} type={msg.type} />
                     
+                    {/* Modal Xóa */}
                     {itemToDelete && (
                         <div className="fixed inset-0 bg-navy/80 z-[200] flex items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
                             <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center">
@@ -985,6 +885,21 @@
                                 <div className="flex gap-3">
                                     <button onClick={() => setItemToDelete(null)} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50 transition-colors">Hủy</button>
                                     <button onClick={executeDelete} className="flex-1 py-3 rounded-xl font-bold text-white bg-red hover:bg-darkred transition-colors shadow-md shadow-red/20">Xóa Vĩnh Viễn</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Chuyển sang Giảm giá */}
+                    {itemToMove && (
+                        <div className="fixed inset-0 bg-navy/80 z-[200] flex items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
+                            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center">
+                                <div className="w-16 h-16 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="percent" className="w-8 h-8" /></div>
+                                <h3 className="text-center font-bold text-navy text-lg mb-2">Đẩy qua Giảm Giá?</h3>
+                                <p className="text-center text-slate text-sm mb-6">NPP không hỗ trợ đổi trả sản phẩm <strong>{itemToMove.name}</strong>?<br/>Hệ thống sẽ chuyển sản phẩm này sang bảng <strong>Giảm Giá</strong> để tính toán thanh lý.</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setItemToMove(null)} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50 transition-colors">Hủy</button>
+                                    <button onClick={executeMoveToDiscount} className="flex-1 py-3 rounded-xl font-bold text-white bg-red hover:bg-darkred transition-colors shadow-md shadow-red/20">Xác Nhận Đẩy</button>
                                 </div>
                             </div>
                         </div>
@@ -1153,12 +1068,18 @@
                                                             <select value={r.status} onChange={(e) => handleReturnStatus(r.id, e.target.value)} className={`text-xs font-bold rounded-xl px-3 py-2 outline-none border w-full text-center cursor-pointer ${r.status === 'Chờ xử lý' ? 'bg-white border-blue text-slate' : r.status === 'Đã báo NPP' ? 'bg-blue/10 border-blue/30 text-navy' : 'bg-green/10 border-green/30 text-green'}`}>
                                                                 <option value="Chờ xử lý">Chờ xử lý</option>
                                                                 <option value="Đã báo NPP">Đã báo NPP</option>
+                                                                <option value="Từ chối đổi">Từ chối đổi</option>
                                                                 <option value="Đã nhận đổi">Đã nhận đổi</option>
                                                             </select>
                                                         </td>
                                                         <td className="p-4 text-right">
                                                             <div className="flex items-center justify-end gap-2">
                                                                 <input type="text" placeholder="Ghi chú..." defaultValue={r.note} className="border border-blue/20 bg-white rounded-lg px-3 py-2 text-xs w-full max-w-[120px] outline-none" />
+                                                                
+                                                                <button onClick={() => setItemToMove({id: r.id, name: r.name})} className="bg-red/10 text-red hover:bg-red hover:text-white p-2 rounded-lg transition-colors border border-red/20" title="Chuyển sang Giảm Giá">
+                                                                    <Icon name="percent" className="w-4 h-4" />
+                                                                </button>
+                                                                
                                                                 <button onClick={() => confirmDelete(r.id, r.name, 'return')} className="bg-red/10 text-red hover:bg-red hover:text-white p-2 rounded-lg transition-colors border border-red/20" title="Xóa dữ liệu">
                                                                     <Icon name="trash-2" className="w-4 h-4" />
                                                                 </button>
@@ -1377,7 +1298,6 @@
                 });
             };
 
-            // HÀM LƯU BỘ ĐỆM CỤC BỘ (GIÚP GHI NHỚ NPP SAU KHI LƯU)
             const updateLocalCache = (barcode, name, npp, imageUrl) => {
                 setMasterProducts(prev => {
                     let newProducts = [...prev];
@@ -1412,6 +1332,12 @@
                         <div className="bg-white/90 backdrop-blur-md shadow-[0_20px_40px_rgb(16,63,103,0.12)] rounded-3xl flex justify-around p-2 w-full max-w-md pointer-events-auto">
                             <button onClick={() => setActiveTab('candate')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="clock" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">CẬN DATE</span></button>
                             <button onClick={() => setActiveTab('dathang')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="shopping-cart" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">ĐẶT HÀNG</span></button>
+                            
+                            <button onClick={() => window.location.href='kiem-ke.html'} className="flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all text-slate hover:bg-sand/30">
+                                <Icon name="clipboard-check" className="h-5 w-5 mb-1" />
+                                <span className="text-[10px] font-bold tracking-wider">KIỂM KÊ</span>
+                            </button>
+                            
                             <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="layout-dashboard" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">DASHBOARD</span></button>
                         </div>
                     </div>
