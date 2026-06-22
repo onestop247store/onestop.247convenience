@@ -227,6 +227,10 @@
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [staffName, setStaffName] = useState('');
             const [tempNameInput, setTempNameInput] = useState('');
+            
+            // Xử lý chuẩn hóa tên ngay lập tức
+            const nameWordCount = tempNameInput.trim().split(/\s+/).filter(Boolean).length;
+            const isNameValid = nameWordCount > 0 && nameWordCount <= 2;
 
             // State Dữ Liệu
             const initialSession = JSON.parse(localStorage.getItem('ONE_STOP_AUDIT_CAMPAIGN_CURRENT')) || { unsyncedScans: [] };
@@ -246,6 +250,7 @@
             const [activeTab, setActiveTab] = useState('scan'); 
             const [isSyncing, setIsSyncing] = useState(false);
             const [duplicateItem, setDuplicateItem] = useState(null); 
+            
             const [showResetModal, setShowResetModal] = useState(false);
             const [resetPin, setResetPin] = useState('');
             const [resetError, setResetError] = useState('');
@@ -266,7 +271,7 @@
                 }
             };
 
-            // 2. Chỉ tải Global Stats khi mở App và tắt gọi ngầm tự động 60s
+            // 2. Chỉ tải Global Stats khi mở App
             useEffect(() => {
                 fetchGlobalProgress();
             }, []);
@@ -422,7 +427,7 @@
             };
 
             const handleSyncToServer = async () => {
-                if (scannedItems.length === 0) return alert("Chưa có dữ liệu nào để đồng bộ!");
+                if (scannedItems.length === 0) return alert("Chưa có dữ liệu nào để gửi!");
                 if (!confirm(`Bạn có chắc chắn muốn gửi ${scannedItems.length} sản phẩm đã kiểm lên hệ thống?`)) return;
 
                 setIsSyncing(true);
@@ -504,34 +509,44 @@
                     {!isAuthenticated && (
                         <div className="fixed inset-0 bg-navy/80 z-[300] flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
                             <div className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative flex flex-col items-center">
-                                <div className="w-20 h-20 bg-gold/10 text-gold rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                <div className="w-20 h-20 bg-gold/10 text-gold rounded-full flex items-center justify-center mb-4 shadow-inner">
                                     <Icon name="user-check" className="w-10 h-10" />
                                 </div>
                                 <h2 className="text-2xl font-bold text-navy mb-2 text-center">Bắt đầu kiểm kê</h2>
-                                <p className="text-sm text-slate text-center mb-6">Vui lòng điền tên của bạn để hệ thống định danh kết quả.</p>
+                                <p className="text-sm text-slate text-center mb-6">Định danh kết quả kiểm đếm của bạn.</p>
+                                
                                 <input
                                     type="text"
                                     value={tempNameInput}
-                                    onChange={(e) => setTempNameInput(e.target.value)}
+                                    onChange={(e) => setTempNameInput(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => { 
-                                        if (e.key === 'Enter' && tempNameInput.trim()) { 
+                                        if (e.key === 'Enter' && isNameValid) { 
                                             setStaffName(tempNameInput.trim()); 
                                             setIsAuthenticated(true); 
                                         } 
                                     }}
-                                    placeholder="Tên nhân viên..."
-                                    className="w-full bg-sand/20 border-2 border-navy/10 rounded-2xl p-4 text-xl font-bold text-navy outline-none focus:border-blue transition-colors text-center mb-4"
+                                    placeholder="VD: HẠNH, VĂN A..."
+                                    className={`w-full bg-sand/20 border-2 rounded-2xl p-4 text-xl font-bold text-navy outline-none transition-colors text-center uppercase mb-2 ${nameWordCount > 2 ? 'border-red/50 focus:border-red bg-red/5' : 'border-navy/10 focus:border-blue'}`}
                                     autoFocus
                                 />
+                                
+                                <div className="h-6 mb-4 flex items-center justify-center w-full">
+                                    {nameWordCount > 2 ? (
+                                        <p className="text-red text-xs font-bold animate-pulse">Lỗi: Chỉ được nhập tối đa 2 chữ!</p>
+                                    ) : (
+                                        <p className="text-slate/50 text-[11px] font-medium">Hệ thống sẽ tự động in hoa (Tối đa 2 chữ)</p>
+                                    )}
+                                </div>
+
                                 <button
                                     onClick={() => {
-                                        if (tempNameInput.trim()) {
+                                        if (isNameValid) {
                                             setStaffName(tempNameInput.trim());
                                             setIsAuthenticated(true);
                                         }
                                     }}
-                                    disabled={!tempNameInput.trim()}
-                                    className={`w-full font-bold py-4 rounded-2xl text-lg flex items-center justify-center transition-all ${tempNameInput.trim() ? 'bg-navy text-sand shadow-lg hover:bg-slate' : 'bg-sand text-slate/50'}`}
+                                    disabled={!isNameValid}
+                                    className={`w-full font-bold py-4 rounded-2xl text-lg flex items-center justify-center transition-all ${isNameValid ? 'bg-navy text-sand shadow-lg hover:bg-slate' : 'bg-sand text-slate/40 cursor-not-allowed'}`}
                                 >
                                     VÀO KIỂM KÊ
                                 </button>
