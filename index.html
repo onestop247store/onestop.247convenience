@@ -37,25 +37,29 @@
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; display: none; } }
         .toast-message { animation: fadeOut 3s forwards; }
         
-        /* ÉP CHUẨN UI CHO THƯ VIỆN HTML5-QRCODE TRÁNH LỖI SCALE & MÉO TỌA ĐỘ */
-        #reader { width: 100% !important; border: none !important; background: #000 !important; border-radius: 1rem; overflow: hidden; }
-        #reader video { object-fit: contain !important; border-radius: 1rem; width: 100% !important; max-height: 50vh !important; }
-        #reader * { box-sizing: border-box !important; }
-        #reader__dashboard_section_csr { padding: 15px 10px !important; width: 100% !important; }
-        #reader__dashboard_section_csr span { font-size: 14px !important; text-align: center; display: block; margin-bottom: 10px; color: #103F67; font-weight: 600; }
-        #html5-qrcode-button-camera-permission { 
-            background-color: #103F67 !important; color: white !important; 
-            padding: 12px 20px !important; border-radius: 12px !important; 
-            font-weight: bold !important; border: none !important; 
-            width: 100% !important; margin: 0 auto !important; display: block !important;
-            box-shadow: 0 4px 6px rgba(16, 63, 103, 0.2) !important;
-        }
-        #html5-qrcode-anchor-scan-type-change { 
-            text-decoration: none !important; color: #39A8D9 !important; 
-            font-weight: bold !important; display: inline-block !important; 
-            margin-top: 15px !important; padding: 10px !important;
-        }
-        #reader__dashboard_section_swaplink { text-align: center !important; margin-top: 10px !important; }
+        /* ÉP CHUẨN UI CHO THƯ VIỆN HTML5-QRCODE TRÁNH LỖI SCALE & VIỆT HÓA ĐẸP MẮT */
+        #reader { width: 100% !important; border: none !important; background: transparent !important; display: flex !important; flex-direction: column !important; }
+        #reader__dashboard { width: 100% !important; padding: 0 !important; margin-bottom: 12px; z-index: 10; }
+        
+        /* Khung quét lớn chiếm toàn bộ chiều rộng */
+        #reader__scan_region { width: 100% !important; border-radius: 1rem; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; min-height: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        #reader video { object-fit: cover !important; width: 100% !important; height: auto !important; border-radius: 1rem; display: block; }
+        
+        /* Chỉnh sửa các thành phần Dashboard */
+        #reader__dashboard_section_csr { padding: 0 !important; width: 100% !important; }
+        #reader__dashboard_section_csr span { font-size: 12px !important; text-align: center; display: block; margin-bottom: 6px; color: #103F67; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Nút chọn Camera to dễ bấm */
+        #reader__dashboard_section_csr select { width: 100% !important; padding: 14px 16px !important; border-radius: 14px !important; border: 2px solid #E4DBD1 !important; font-weight: bold !important; color: #103F67 !important; background-color: #F8F9FA !important; margin-bottom: 12px !important; outline: none; appearance: none; text-align: center; font-size: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        
+        /* Các nút chức năng (Bắt đầu, Dừng, Cấp quyền) */
+        #reader button { background-color: #103F67 !important; color: white !important; padding: 14px 20px !important; border-radius: 14px !important; font-weight: 800 !important; border: none !important; width: 100% !important; display: block !important; box-shadow: 0 6px 12px rgba(16, 63, 103, 0.15) !important; text-transform: uppercase; font-size: 14px !important; margin-bottom: 10px !important; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; }
+        #reader button:active { transform: scale(0.98); }
+        
+        /* Link chọn quét ảnh có sẵn */
+        #html5-qrcode-anchor-scan-type-change { text-decoration: none !important; color: #39A8D9 !important; font-weight: 800 !important; display: block !important; text-align: center !important; margin-top: 6px !important; padding: 14px !important; text-transform: uppercase; font-size: 13px !important; background: #E4DBD140; border-radius: 14px; border: 2px dashed #39A8D9; transition: all 0.2s; }
+        #html5-qrcode-anchor-scan-type-change:active { background: #39A8D920; }
+        #reader__dashboard_section_swaplink { text-align: center !important; width: 100%; margin-top: 0 !important; }
     </style>
 </head>
 <body>
@@ -181,21 +185,53 @@
                     }
                 }, () => {});
                 
-                return () => { html5QrcodeScanner.clear().catch(e=>console.error(e)); };
+                // MÁY DỊCH (MUTATION OBSERVER): Tự động đổi Text tiếng Anh sang tiếng Việt real-time
+                const observer = new MutationObserver(() => {
+                    const stopBtn = document.getElementById('html5-qrcode-button-camera-stop');
+                    if (stopBtn && stopBtn.innerText.includes('Stop Scanning')) stopBtn.innerText = 'DỪNG QUÉT CAMERA';
+                    
+                    const startBtn = document.getElementById('html5-qrcode-button-camera-start');
+                    if (startBtn && startBtn.innerText.includes('Start Scanning')) startBtn.innerText = 'BẮT ĐẦU QUÉT';
+                    
+                    const permBtn = document.getElementById('html5-qrcode-button-camera-permission');
+                    if (permBtn && permBtn.innerText.includes('Request Camera Permissions')) permBtn.innerText = 'BẬT QUYỀN CAMERA CHO WEB';
+                    
+                    const scanFileLink = document.getElementById('html5-qrcode-anchor-scan-type-change');
+                    if (scanFileLink) {
+                        if (scanFileLink.innerText.includes('Scan an Image File')) scanFileLink.innerText = 'TẢI ẢNH TỪ BỘ SƯU TẬP (MÁY)';
+                        if (scanFileLink.innerText.includes('Scan using camera directly')) scanFileLink.innerText = 'TRỞ LẠI QUÉT TRỰC TIẾP (CAMERA)';
+                    }
+                    
+                    const chooseFileBtn = document.getElementById('html5-qrcode-button-file-selection');
+                    if (chooseFileBtn && chooseFileBtn.innerText.includes('Choose Image')) chooseFileBtn.innerText = 'CHỌN ẢNH CÓ MÃ VẠCH';
+
+                    const spans = document.querySelectorAll('#reader__dashboard_section_csr span');
+                    spans.forEach(span => {
+                        if (span.innerText.includes('Select Camera')) {
+                            span.innerText = span.innerText.replace(/Select Camera/g, 'Chọn Nguồn Camera');
+                        }
+                    });
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+
+                return () => { 
+                    observer.disconnect();
+                    html5QrcodeScanner.clear().catch(e=>console.error(e)); 
+                };
             }, [onScanSuccess]);
 
             return (
                 <div className="fixed inset-0 bg-navy/95 z-[100] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white p-4 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden flex flex-col items-center">
+                    <div className="bg-white p-5 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden flex flex-col items-center max-h-[95vh] overflow-y-auto hide-scrollbar">
                         <button onClick={onClose} className="absolute z-50 top-3 right-3 text-slate hover:bg-sand/30 p-2 rounded-full transition-colors">
                             <Icon name="x" className="w-6 h-6" />
                         </button>
                         
-                        <div className="w-12 h-1.5 bg-sand rounded-full mb-4 mt-2"></div>
-                        <h3 className="text-center font-bold text-navy mb-2 w-full">Camera Quét Mã</h3>
-                        <p className="text-xs text-slate text-center mb-4 px-2">Cần chỉnh mã vạch (chữ nhật) hoặc mã QR (vuông) vào giữa khung</p>
+                        <div className="w-12 h-1.5 bg-sand rounded-full mb-5 mt-1 shrink-0"></div>
+                        <h3 className="text-center font-black text-navy mb-1 w-full text-xl shrink-0">Camera Quét Mã</h3>
+                        <p className="text-xs text-slate/70 font-semibold text-center mb-4 px-2 shrink-0">Căn chỉnh mã vạch hoặc QR vào giữa khung</p>
                         
-                        <div id="reader" className="w-full relative rounded-2xl overflow-hidden min-h-[250px] flex items-center justify-center bg-black"></div>
+                        <div id="reader" className="w-full flex-1"></div>
                     </div>
                 </div>
             );
