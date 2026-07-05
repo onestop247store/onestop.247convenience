@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ONE STOP - Inventory Audit</title>
+    <title>ONE STOP - Inventory Audit Hub</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -19,6 +19,9 @@
                         red: '#F0573A',
                         darkred: '#B92025',
                         slate: '#2D4155'
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
                     }
                 }
             }
@@ -36,6 +39,7 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
         
         #reader { width: 100% !important; border: none !important; background: transparent !important; }
         #reader video { object-fit: cover !important; border-radius: 1rem; width: 100% !important; }
@@ -64,6 +68,7 @@
         const { useState, useEffect, useRef, useMemo } = React;
         const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec";
 
+        // --- COMPONENT ICON ---
         const Icon = ({ name, className = '' }) => {
             const ref = useRef(null);
             useEffect(() => {
@@ -75,11 +80,13 @@
             return <span ref={ref} style={{ display: 'contents' }}></span>;
         };
 
+        // --- COMPONENT AVATAR ---
         const ProductAvatar = ({ url }) => {
             if (url) return <img src={url} alt="avatar" className="w-12 h-12 rounded-xl object-cover border border-sand/50 shadow-sm shrink-0 bg-white" />;
             return <div className="w-12 h-12 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-6 h-6 text-slate/40" /></div>;
         };
 
+        // --- COMPONENT MÁY QUÉT CAMERA VIỆT HÓA ---
         const BarcodeScanner = ({ onScanSuccess, onClose }) => {
             useEffect(() => {
                 const formats = window.Html5QrcodeSupportedFormats ? [
@@ -106,7 +113,22 @@
                         onScanSuccess(decodedText.trim());
                     }
                 }, () => {});
-                return () => { html5QrcodeScanner.clear().catch(e=>console.error(e)); };
+
+                // Việt hóa ngầm thư viện Quét mã
+                const observer = new MutationObserver(() => {
+                    const btn = document.getElementById('html5-qrcode-button-camera-permission');
+                    if (btn && btn.innerText !== "CẤP QUYỀN MỞ CAMERA") btn.innerText = "CẤP QUYỀN MỞ CAMERA";
+                    const span = document.querySelector('#reader__dashboard_section_csr span');
+                    if (span && span.innerText.includes("Requesting camera")) span.innerText = "Vui lòng bấm nút bên dưới để bật camera";
+                    const anchor = document.getElementById('html5-qrcode-anchor-scan-type-change');
+                    if (anchor && anchor.innerText.includes("Scan an Image File")) anchor.innerText = "Hoặc chọn ảnh mã vạch từ máy";
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+
+                return () => { 
+                    observer.disconnect();
+                    html5QrcodeScanner.clear().catch(e=>console.error(e)); 
+                };
             }, [onScanSuccess]);
 
             return (
@@ -115,7 +137,6 @@
                         <button onClick={onClose} className="absolute z-50 top-3 right-3 text-slate hover:bg-sand/30 p-2 rounded-full transition-colors">
                             <Icon name="x" className="w-6 h-6" />
                         </button>
-                        
                         <div className="w-12 h-1.5 bg-sand rounded-full mb-4 mt-2"></div>
                         <h3 className="text-center font-bold text-navy mb-4 w-full">Camera Quét Mã</h3>
                         <div id="reader" className="w-full relative rounded-2xl overflow-hidden min-h-[300px] flex items-center justify-center bg-sand/10"></div>
@@ -124,6 +145,7 @@
             );
         };
 
+        // --- COMPONENT TÌM KIẾM THÔNG MINH ---
         const SmartProductSearch = ({ value, onChange, onManualSearch, onClear, masterProducts, onProductSelect, onScanClick }) => {
             const [suggestions, setSuggestions] = useState([]);
             const [isOpen, setIsOpen] = useState(false);
@@ -214,21 +236,20 @@
         };
 
         const navigateTo = (url) => {
-            try {
-                window.location.href = url;
-            } catch (error) {
-                console.warn("Môi trường Preview chặn hành động chuyển trang:", error);
-                alert("Tính năng chuyển sang trang " + url + " sẽ hoạt động bình thường trên môi trường thực tế bên ngoài Canvas.");
-            }
+            try { window.location.href = url; } 
+            catch (error) { alert("Tính năng chuyển sang trang " + url + " sẽ hoạt động bình thường bên ngoài Canvas."); }
         };
 
+        // ==========================================
+        // COMPONENT CHÍNH APP
+        // ==========================================
         const App = () => {
             // State Xác thực
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [staffName, setStaffName] = useState('');
             const [tempNameInput, setTempNameInput] = useState('');
+            const [isLoggingIn, setIsLoggingIn] = useState(false);
             
-            // Xử lý chuẩn hóa tên ngay lập tức
             const nameWordCount = tempNameInput.trim().split(/\s+/).filter(Boolean).length;
             const isNameValid = nameWordCount > 0 && nameWordCount <= 2;
 
@@ -238,7 +259,7 @@
             const [scannedItems, setScannedItems] = useState(initialSession.unsyncedScans); 
             const [uncountedItems, setUncountedItems] = useState([]); 
             
-            // STATE ĐỒNG BỘ GLOBAL (Server-side)
+            // STATE ĐỒNG BỘ GLOBAL
             const [globalStats, setGlobalStats] = useState({ countedSKU: 0, leaderboard: {}, countedBarcodes: [] });
             const [isFetchingGlobal, setIsFetchingGlobal] = useState(false);
 
@@ -249,34 +270,29 @@
             const [isScanning, setIsScanning] = useState(false);
             const [activeTab, setActiveTab] = useState('scan'); 
             const [isSyncing, setIsSyncing] = useState(false);
-            const [duplicateItem, setDuplicateItem] = useState(null); 
             
+            // Pop-ups
+            const [duplicateItem, setDuplicateItem] = useState(null); 
+            const [negativeStockWarning, setNegativeStockWarning] = useState(null);
+            const [serverOverwriteConfirm, setServerOverwriteConfirm] = useState(null);
             const [showResetModal, setShowResetModal] = useState(false);
             const [resetPin, setResetPin] = useState('');
             const [resetError, setResetError] = useState('');
 
-            // 1. Fetch dữ liệu tiến độ từ Global Server
+            // 1. Tải tiến độ từ Server
             const fetchGlobalProgress = async () => {
                 setIsFetchingGlobal(true);
                 try {
                     const res = await fetch(`${API_URL}?action=getKiemKeProgress`);
                     const data = await res.json();
-                    if (!data.error) {
-                        setGlobalStats(data);
-                    }
-                } catch (error) {
-                    console.log("Lỗi tải Global Stats:", error);
-                } finally {
-                    setIsFetchingGlobal(false);
-                }
+                    if (!data.error) setGlobalStats(data);
+                } catch (error) { console.log("Lỗi tải Global Stats:", error); } 
+                finally { setIsFetchingGlobal(false); }
             };
 
-            // 2. Chỉ tải Global Stats khi mở App
-            useEffect(() => {
-                fetchGlobalProgress();
-            }, []);
+            useEffect(() => { fetchGlobalProgress(); }, []);
 
-            // 3. Khởi tạo Master Data và Base Routes từ Cache
+            // 2. Khởi tạo Master Data từ Cache
             useEffect(() => {
                 const loadSharedCache = () => {
                     const cached = localStorage.getItem('ONE_STOP_PRODUCTS_CACHE');
@@ -285,23 +301,20 @@
                     if (cached) {
                         const parsed = JSON.parse(cached);
                         const preparedProducts = (parsed.products || []).map((p, index) => {
-                            const defaultCoord = (index + 1) * 100000; 
                             return {
                                 ...p,
-                                learnedIndex: learnedCoords[p.barcode] !== undefined ? learnedCoords[p.barcode] : defaultCoord,
-                                systemQty: p.systemQty !== undefined ? p.systemQty : Math.floor(Math.random() * 45) + 5 
+                                learnedIndex: learnedCoords[p.barcode] !== undefined ? learnedCoords[p.barcode] : (p.learnedIndex || (index + 1) * 100000),
+                                systemQty: p.systemQty !== undefined ? p.systemQty : 0
                             };
                         });
                         preparedProducts.sort((a, b) => a.learnedIndex - b.learnedIndex);
                         setMasterProducts(preparedProducts);
-                    } else {
-                        alert("Hệ thống chưa có danh mục! Hãy mở tab Cận Date hoặc Đặt Hàng 1 lần để máy tải dữ liệu gốc về.");
                     }
                 };
                 loadSharedCache();
             }, []);
 
-            // 4. Lọc Tab Thiếu thông minh (Trừ đi MỌI SẢN PHẨM đã đếm bởi BẤT KỲ AI)
+            // 3. Lọc Tab Thiếu thông minh
             useEffect(() => {
                 if (masterProducts.length > 0) {
                     const allCountedSet = new Set([
@@ -312,19 +325,56 @@
                 }
             }, [masterProducts, globalStats.countedBarcodes, scannedItems]);
 
-            // 5. Lưu Nháp (Draft) vào LocalStorage
+            // 4. Lưu Nháp vào LocalStorage
             useEffect(() => {
-                localStorage.setItem('ONE_STOP_AUDIT_CAMPAIGN_CURRENT', JSON.stringify({
-                    unsyncedScans: scannedItems
-                }));
+                localStorage.setItem('ONE_STOP_AUDIT_CAMPAIGN_CURRENT', JSON.stringify({ unsyncedScans: scannedItems }));
             }, [scannedItems]);
+
+            // --- THUẬT TOÁN AI ROUTE SUGGESTIONS CHO TAB 1 ---
+            const smartShelfSuggestions = useMemo(() => {
+                if (scannedItems.length === 0 || uncountedItems.length === 0) return [];
+                const lastCoord = scannedItems[0].learnedIndex;
+                return [...uncountedItems]
+                    .sort((a, b) => Math.abs(a.learnedIndex - lastCoord) - Math.abs(b.learnedIndex - lastCoord))
+                    .slice(0, 4);
+            }, [scannedItems, uncountedItems]);
+
+            // --- ĐĂNG NHẬP THÔNG MINH TTL 120 PHÚT ---
+            const handleSmartLogin = async () => {
+                if (!isNameValid) return;
+                setIsLoggingIn(true);
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "checkAndSyncSapoTTL" })
+                    });
+                    const data = await res.json();
+                    if (data.status === "synced" && data.updatedProducts) {
+                        const cachedObj = JSON.parse(localStorage.getItem('ONE_STOP_PRODUCTS_CACHE')) || {};
+                        cachedObj.products = data.updatedProducts;
+                        localStorage.setItem('ONE_STOP_PRODUCTS_CACHE', JSON.stringify(cachedObj));
+                        
+                        setMasterProducts(prev => {
+                            const learnedCoords = JSON.parse(localStorage.getItem('ONE_STOP_LEARNED_COORDS')) || {};
+                            return data.updatedProducts.map((p, idx) => ({
+                                ...p,
+                                learnedIndex: learnedCoords[p.barcode] !== undefined ? learnedCoords[p.barcode] : (p.learnedIndex || (idx + 1) * 100000)
+                            }));
+                        });
+                    }
+                } catch (e) { console.warn("Mất kết nối lúc login, dùng cache hiện tại."); } 
+                finally {
+                    setStaffName(tempNameInput.trim());
+                    setIsAuthenticated(true);
+                    setIsLoggingIn(false);
+                }
+            };
 
             const handleProductSelect = (prod) => {
                 const alreadyScanned = scannedItems.find(item => item.barcode === prod.barcode);
-                if (alreadyScanned) {
-                    setDuplicateItem(alreadyScanned);
-                    return;
-                }
+                if (alreadyScanned) { setDuplicateItem(alreadyScanned); return; }
+
+                if (prod.systemQty < 0) setNegativeStockWarning(prod);
 
                 setSearchInput(prod.name);
                 setCurrentProduct(prod);
@@ -336,21 +386,15 @@
                 const cleanCode = code.trim();
                 if (!cleanCode) return;
                 setIsScanning(false);
-                
                 if (currentProduct && (String(currentProduct.barcode) === cleanCode || String(currentProduct.name || '').toLowerCase() === cleanCode.toLowerCase())) return;
 
                 const found = masterProducts.find(p => String(p.barcode) === cleanCode || String(p.name || '').toLowerCase() === cleanCode.toLowerCase());
-                if (found) {
-                    handleProductSelect(found);
-                } else {
-                    alert("Không tìm thấy sản phẩm này trong danh mục!");
-                }
+                if (found) handleProductSelect(found);
+                else alert("Không tìm thấy sản phẩm này trong danh mục!");
             };
 
             const handleClearSearch = () => {
-                setSearchInput('');
-                setCurrentProduct(null);
-                setActualQty('');
+                setSearchInput(''); setCurrentProduct(null); setActualQty('');
             };
 
             useEffect(() => {
@@ -360,70 +404,93 @@
                 }
             }, [searchInput]);
 
-            const getCountFeedback = () => {
-                if (!currentProduct || actualQty === '') return null;
-                const count = parseInt(actualQty);
-                const sysQty = currentProduct.systemQty;
-
-                if (count === sysQty) {
-                    return { type: 'match', color: 'text-green bg-green/10 border-green/30', icon: 'check-circle-2', text: 'Tuyệt vời! Số lượng khớp với hệ thống.' };
-                } else if (count < sysQty) {
-                    return { type: 'short', color: 'text-darkred bg-red/10 border-red/30', icon: 'alert-circle', text: 'Gợi ý: Hệ thống đang báo thiếu. Hãy thử tìm kỹ phía sau kệ. Nếu vẫn chưa khớp thì đừng lo, có thể do lỗi hệ thống mà thôi.' };
-                } else {
-                    return { type: 'over', color: 'text-gold bg-gold/10 border-gold/30', icon: 'info', text: 'Gợi ý: Hệ thống báo đang dư. Hãy kiểm tra xem có bị lẫn hàng không. Nếu vẫn chưa khớp thì đừng lo, có thể do lỗi hệ thống mà thôi.' };
-                }
-            };
-
-            const handleSaveCount = () => {
-                if (!currentProduct || actualQty === '') return;
-
-                const countVal = parseInt(actualQty);
+            // --- HÀM THỰC THI LƯU TRỮ VÀ HỌC LỘ TRÌNH ---
+            const executeSaveCount = (targetProduct, targetQty) => {
+                const prod = targetProduct || currentProduct;
+                const countVal = targetQty !== undefined ? targetQty : parseInt(actualQty);
                 const now = new Date();
                 
-                let newCoordinate = currentProduct.learnedIndex;
-
+                let newCoordinate = prod.learnedIndex;
                 if (scannedItems.length > 0) {
                     const lastScannedItem = scannedItems[0];
                     const lastCoord = lastScannedItem.learnedIndex;
-
                     const allSorted = [...masterProducts].sort((a, b) => a.learnedIndex - b.learnedIndex);
                     const lastScannedIndexInMap = allSorted.findIndex(p => p.barcode === lastScannedItem.barcode);
 
                     let nextCoord = lastCoord + 100000;
                     if (lastScannedIndexInMap >= 0 && lastScannedIndexInMap < allSorted.length - 1) {
                         const nextItemInMap = allSorted[lastScannedIndexInMap + 1];
-                        if (nextItemInMap.barcode !== currentProduct.barcode) {
-                            nextCoord = nextItemInMap.learnedIndex;
-                        } else if (lastScannedIndexInMap < allSorted.length - 2) {
-                            nextCoord = allSorted[lastScannedIndexInMap + 2].learnedIndex;
-                        }
+                        if (nextItemInMap.barcode !== prod.barcode) nextCoord = nextItemInMap.learnedIndex;
+                        else if (lastScannedIndexInMap < allSorted.length - 2) nextCoord = allSorted[lastScannedIndexInMap + 2].learnedIndex;
                     }
 
-                    if (currentProduct.learnedIndex <= lastCoord || currentProduct.learnedIndex >= nextCoord) {
+                    if (prod.learnedIndex <= lastCoord || prod.learnedIndex >= nextCoord) {
                         newCoordinate = (lastCoord + nextCoord) / 2;
                         const learnedCoords = JSON.parse(localStorage.getItem('ONE_STOP_LEARNED_COORDS')) || {};
-                        learnedCoords[currentProduct.barcode] = newCoordinate;
+                        learnedCoords[prod.barcode] = newCoordinate;
                         localStorage.setItem('ONE_STOP_LEARNED_COORDS', JSON.stringify(learnedCoords));
-                        setMasterProducts(prev => prev.map(p => p.barcode === currentProduct.barcode ? { ...p, learnedIndex: newCoordinate } : p));
+                        setMasterProducts(prev => prev.map(p => p.barcode === prod.barcode ? { ...p, learnedIndex: newCoordinate } : p));
                     }
                 }
-                
+
                 const dd = String(now.getDate()).padStart(2, '0');
                 const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 
+                // ĐÁNH GIÁ TRẠNG THÁI CỘT J (ANTI-CHEAT)
+                const diff = countVal - prod.systemQty;
+                let badge = 'ĐỦ';
+                let auditNote = 'Đếm chuẩn lần đầu';
+
+                if (diff > 0) badge = 'DƯ';
+                if (diff < 0) badge = 'THIẾU';
+
+                const existingItem = scannedItems.find(i => i.barcode === prod.barcode);
+                if (existingItem || prod.isBeingEdited) {
+                    const firstTime = prod.firstTimestampMs || now.getTime();
+                    const elapsedMinutes = (now.getTime() - firstTime) / (1000 * 60);
+                    const firstQty = prod.firstQty !== undefined ? prod.firstQty : countVal;
+                    
+                    auditNote = `Sửa từ ${firstQty} -> ${countVal} (sau ${Math.round(elapsedMinutes)}p)`;
+
+                    if (elapsedMinutes <= 10 && firstQty !== prod.systemQty && countVal === prod.systemQty) {
+                        badge = 'CẦN CHECK LẠI';
+                    }
+                }
+
+                if (globalStats.countedBarcodes?.includes(prod.barcode)) {
+                    auditNote = `Cập nhật lại Server (Mới: ${countVal})`;
+                }
+
                 const countedItem = {
-                    ...currentProduct,
+                    ...prod,
                     learnedIndex: newCoordinate,
                     actualQty: countVal,
-                    diff: countVal - currentProduct.systemQty,
+                    diff: diff,
                     timestampStr: `${timeStr} - ${dd}/${mm}`, 
                     timestampMs: now.getTime(),
-                    staffName: staffName 
+                    firstTimestampMs: prod.firstTimestampMs || now.getTime(),
+                    firstQty: prod.firstQty !== undefined ? prod.firstQty : countVal,
+                    staffName: staffName,
+                    statusBadge: badge,
+                    auditNote: auditNote,
+                    isBeingEdited: false
                 };
 
-                setScannedItems(prev => [countedItem, ...prev.filter(i => i.barcode !== currentProduct.barcode)]);
+                setScannedItems(prev => [countedItem, ...prev.filter(i => i.barcode !== prod.barcode)]);
+                setServerOverwriteConfirm(null);
                 handleClearSearch();
+            };
+
+            const handleSaveCount = () => {
+                if (!currentProduct || actualQty === '') return;
+                const countVal = parseInt(actualQty);
+
+                if (globalStats.countedBarcodes?.includes(currentProduct.barcode)) {
+                    setServerOverwriteConfirm({ product: currentProduct, newQty: countVal });
+                    return;
+                }
+                executeSaveCount(currentProduct, countVal);
             };
 
             const handleSyncToServer = async () => {
@@ -436,43 +503,27 @@
                     await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
                     alert("Đã gửi dữ liệu kiểm kê thành công!");
                     setScannedItems([]); 
-                    // Ép hệ thống tải lại số liệu tổng (Leaderboard) ngay lập tức
                     fetchGlobalProgress();
-                } catch (error) {
-                    alert("Lỗi kết nối khi gửi! Dữ liệu nháp vẫn được giữ an toàn trên máy.");
-                } finally {
-                    setIsSyncing(false);
-                }
-            };
-
-            const handleResetClick = () => {
-                setShowResetModal(true);
-                setResetPin('');
-                setResetError('');
+                } catch (error) { alert("Lỗi kết nối khi gửi! Dữ liệu nháp vẫn được giữ an toàn trên máy."); } 
+                finally { setIsSyncing(false); }
             };
 
             const confirmResetCampaign = async () => {
-                if (resetPin !== '56789') {
-                    setResetError('Mã PIN không chính xác!');
-                    return;
-                }
-                
+                if (resetPin !== '56789') { setResetError('Mã PIN không chính xác!'); return; }
                 try {
-                    const payload = { action: "resetKiemKe" };
-                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "resetKiemKe" }) });
                     localStorage.removeItem('ONE_STOP_AUDIT_CAMPAIGN_CURRENT');
                     alert("Đã thiết lập lại Kỳ kiểm kê mới thành công!");
                     window.location.reload();
-                } catch (error) {
-                    setResetError("Lỗi kết nối khi reset hệ thống!");
-                }
+                } catch (error) { setResetError("Lỗi kết nối khi reset hệ thống!"); }
             };
 
+            // Blind Re-Entry: Xóa trắng ô input khi bấm Sửa
             const handleEditScannedItem = (itemToEdit) => {
                 setScannedItems(prev => prev.filter(item => item.barcode !== itemToEdit.barcode));
-                setCurrentProduct(itemToEdit);
+                setCurrentProduct({ ...itemToEdit, isBeingEdited: true });
                 setSearchInput(itemToEdit.name);
-                setActualQty(itemToEdit.actualQty.toString());
+                setActualQty(''); 
                 setActiveTab('scan');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
@@ -480,32 +531,22 @@
             const sortedUncounted = useMemo(() => {
                 if (scannedItems.length === 0) return [...uncountedItems].sort((a, b) => a.learnedIndex - b.learnedIndex);
                 const targetIndex = scannedItems[0].learnedIndex;
-                return [...uncountedItems].sort((a, b) => {
-                    const distA = Math.abs(a.learnedIndex - targetIndex);
-                    const distB = Math.abs(b.learnedIndex - targetIndex);
-                    return distA - distB; 
-                });
+                return [...uncountedItems].sort((a, b) => Math.abs(a.learnedIndex - targetIndex) - Math.abs(b.learnedIndex - targetIndex));
             }, [uncountedItems, scannedItems]);
 
-            const feedback = getCountFeedback();
-
-            // --- TÍNH TOÁN DỮ LIỆU TỔNG (GLOBAL + LOCAL NHÁP) ---
             const localOnlyScans = scannedItems.filter(i => !(globalStats.countedBarcodes || []).includes(i.barcode));
             const totalSKU = masterProducts.length;
             const countedSKU = (globalStats.countedSKU || 0) + localOnlyScans.length;
             const progressPct = totalSKU > 0 ? Math.round((countedSKU / totalSKU) * 100) : 0;
             
-            // Gộp Leaderboard của cả thế giới với Leaderboard nháp trên máy mình
             const combinedStats = { ...(globalStats.leaderboard || {}) };
-            localOnlyScans.forEach(item => {
-                combinedStats[item.staffName] = (combinedStats[item.staffName] || 0) + 1;
-            });
+            localOnlyScans.forEach(item => { combinedStats[item.staffName] = (combinedStats[item.staffName] || 0) + 1; });
             const staffStatsArray = Object.entries(combinedStats).sort((a, b) => b[1] - a[1]);
 
             return (
                 <div className="bg-sand min-h-screen font-sans pb-28 relative">
                     
-                    {/* MÀN HÌNH KHÓA: ĐIỀN TÊN NHÂN VIÊN */}
+                    {/* MÀN HÌNH KHÓA ĐĂNG NHẬP THÔNG MINH */}
                     {!isAuthenticated && (
                         <div className="fixed inset-0 bg-navy/80 z-[300] flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
                             <div className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative flex flex-col items-center">
@@ -516,15 +557,9 @@
                                 <p className="text-sm text-slate text-center mb-6">Định danh kết quả kiểm đếm của bạn.</p>
                                 
                                 <input
-                                    type="text"
-                                    value={tempNameInput}
+                                    type="text" value={tempNameInput}
                                     onChange={(e) => setTempNameInput(e.target.value.toUpperCase())}
-                                    onKeyDown={(e) => { 
-                                        if (e.key === 'Enter' && isNameValid) { 
-                                            setStaffName(tempNameInput.trim()); 
-                                            setIsAuthenticated(true); 
-                                        } 
-                                    }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && isNameValid && !isLoggingIn) handleSmartLogin(); }}
                                     placeholder="VD: HẠNH, VĂN A..."
                                     className={`w-full bg-sand/20 border-2 rounded-2xl p-4 text-xl font-bold text-navy outline-none transition-colors text-center uppercase mb-2 ${nameWordCount > 2 ? 'border-red/50 focus:border-red bg-red/5' : 'border-navy/10 focus:border-blue'}`}
                                     autoFocus
@@ -534,70 +569,97 @@
                                     {nameWordCount > 2 ? (
                                         <p className="text-red text-xs font-bold animate-pulse">Lỗi: Chỉ được nhập tối đa 2 chữ!</p>
                                     ) : (
-                                        <p className="text-slate/50 text-[11px] font-medium">Hệ thống sẽ tự động in hoa (Tối đa 2 chữ)</p>
+                                        <p className="text-slate/50 text-[11px] font-medium">Hệ thống tự động in hoa (Tối đa 2 chữ)</p>
                                     )}
                                 </div>
 
                                 <button
-                                    onClick={() => {
-                                        if (isNameValid) {
-                                            setStaffName(tempNameInput.trim());
-                                            setIsAuthenticated(true);
-                                        }
-                                    }}
-                                    disabled={!isNameValid}
-                                    className={`w-full font-bold py-4 rounded-2xl text-lg flex items-center justify-center transition-all ${isNameValid ? 'bg-navy text-sand shadow-lg hover:bg-slate' : 'bg-sand text-slate/40 cursor-not-allowed'}`}
+                                    onClick={handleSmartLogin} disabled={!isNameValid || isLoggingIn}
+                                    className={`w-full font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-2 transition-all ${isNameValid && !isLoggingIn ? 'bg-navy text-sand shadow-lg hover:bg-slate' : 'bg-sand text-slate/40 cursor-not-allowed'}`}
                                 >
-                                    VÀO KIỂM KÊ
+                                    {isLoggingIn && <Icon name="loader-2" className="w-5 h-5 animate-spin text-gold" />}
+                                    {isLoggingIn ? "ĐANG ĐỒNG BỘ DỮ LIỆU..." : "VÀO KIỂM KÊ"}
                                 </button>
                                 <button onClick={() => navigateTo('index.html')} className="mt-6 text-sm font-semibold text-slate/60 hover:text-navy underline">Quay lại Dashboard</button>
                             </div>
                         </div>
                     )}
 
-                    {/* POPUP: CẢNH BÁO TRÙNG LẶP SẢN PHẨM ĐÃ ĐẾM TRONG DỮ LIỆU NHÁP */}
+                    {/* POP-UP: CẢNH BÁO TRÙNG LẶP SẢN PHẨM NHÁP */}
                     {duplicateItem && (
                         <div className="fixed inset-0 bg-navy/80 z-[200] flex items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
                             <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center">
                                 <div className="w-16 h-16 bg-gold/10 text-gold rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="alert-circle" className="w-8 h-8" /></div>
                                 <h3 className="text-center font-bold text-navy text-lg mb-2">Sản phẩm có trong nháp!</h3>
                                 <p className="text-center text-slate text-sm mb-6">
-                                    Mã <strong className="font-mono bg-sand/50 px-1 rounded">{duplicateItem.barcode}</strong> đang nằm trong danh sách chờ gửi với số lượng <strong className="text-navy text-base">{duplicateItem.actualQty}</strong>.<br/><br/>
+                                    Mã <strong className="font-mono bg-sand/50 px-1 rounded">{duplicateItem.barcode}</strong> đang chờ gửi với số lượng <strong className="text-navy text-base">{duplicateItem.actualQty}</strong>.<br/><br/>
                                     Vui lòng cập nhật lại số lượng nếu cần điều chỉnh.
                                 </p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => { setDuplicateItem(null); handleClearSearch(); }} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50 transition-colors">Bỏ qua</button>
-                                    <button onClick={() => { handleEditScannedItem(duplicateItem); setDuplicateItem(null); }} className="flex-1 py-3 rounded-xl font-bold text-navy bg-gold hover:bg-gold/80 transition-colors shadow-md shadow-gold/20">Cập nhật lại</button>
+                                    <button onClick={() => { setDuplicateItem(null); handleClearSearch(); }} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50">Bỏ qua</button>
+                                    <button onClick={() => { handleEditScannedItem(duplicateItem); setDuplicateItem(null); }} className="flex-1 py-3 rounded-xl font-bold text-navy bg-gold hover:bg-gold/80 shadow-md">Cập nhật lại</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* POPUP: NHẬP PIN RESET KỲ KIỂM KÊ */}
+                    {/* POP-UP: CẢNH BÁO TỒN KHO ÂM TỪ SAPO */}
+                    {negativeStockWarning && (
+                        <div className="fixed inset-0 bg-darkred/90 z-[250] flex items-center justify-center px-4 backdrop-blur-md animate-in fade-in">
+                            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center border-4 border-red">
+                                <div className="w-16 h-16 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="alert-triangle" className="w-8 h-8 animate-bounce" /></div>
+                                <h3 className="text-center font-black text-navy text-lg mb-2">CẢNH BÁO TỒN KHO ÂM!</h3>
+                                <p className="text-center text-slate text-sm mb-6">
+                                    Sản phẩm <strong className="text-navy">{negativeStockWarning.name}</strong> đang có số tồn trên Sapo là <strong className="text-red font-mono text-base">{negativeStockWarning.systemQty}</strong>.<br/><br/>
+                                    Vui lòng <strong>KIỂM ĐẾM THỰC TẾ 100% TRÊN KỆ</strong> và nhập chính xác số lượng vật lý đang có!
+                                </p>
+                                <button onClick={() => setNegativeStockWarning(null)} className="w-full py-3.5 rounded-xl font-bold text-white bg-navy hover:bg-slate shadow-lg">ĐÃ HIỂU, TÔI SẼ ĐẾM KỸ</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* POP-UP: XÁC NHẬN CẬP NHẬT GHI ĐÈ SERVER */}
+                    {serverOverwriteConfirm && (
+                        <div className="fixed inset-0 bg-navy/85 z-[260] flex items-center justify-center px-4 backdrop-blur-md animate-in fade-in">
+                            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center border-2 border-gold">
+                                <div className="w-16 h-16 bg-gold/15 text-gold rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="refresh-cw" className="w-8 h-8 animate-spin-slow" /></div>
+                                <h3 className="text-center font-black text-navy text-lg mb-2">Cập Nhật Tồn Kho Server?</h3>
+                                <p className="text-center text-slate text-sm mb-6 leading-relaxed">
+                                    Sản phẩm <strong className="text-navy font-bold">{serverOverwriteConfirm.product.name}</strong> (<span className="font-mono text-xs">{serverOverwriteConfirm.product.barcode}</span>) đã được kiểm kê trước đó.<br/><br/>
+                                    Bạn có chắc chắn muốn dùng số lượng thực đếm mới là <strong className="text-2xl text-navy font-black block my-1">{serverOverwriteConfirm.newQty}</strong> để cập nhật lại hệ thống?
+                                </p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setServerOverwriteConfirm(null)} className="flex-1 py-3.5 rounded-xl font-bold text-slate bg-sand/40 hover:bg-sand/70">Hủy bỏ</button>
+                                    <button onClick={() => executeSaveCount(serverOverwriteConfirm.product, serverOverwriteConfirm.newQty)} className="flex-1 py-3.5 rounded-xl font-bold text-navy bg-gold hover:bg-gold/80 shadow-lg flex items-center justify-center gap-1.5">
+                                        <Icon name="check" className="w-4 h-4 stroke-[3]" /> Cập nhật ngay
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* POP-UP: NHẬP PIN RESET KỲ KIỂM KÊ */}
                     {showResetModal && (
                         <div className="fixed inset-0 bg-navy/80 z-[400] flex items-center justify-center px-4 backdrop-blur-sm animate-in fade-in">
                             <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center">
                                 <div className="w-16 h-16 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="shield-alert" className="w-8 h-8" /></div>
                                 <h3 className="text-center font-bold text-navy text-lg mb-2">Reset Kỳ Kiểm Kê</h3>
-                                <p className="text-center text-slate text-sm mb-4">Hành động này sẽ xóa toàn bộ tiến độ trên Server. Vui lòng nhập mã PIN quản lý:</p>
+                                <p className="text-center text-slate text-sm mb-4">Hành động này sẽ xóa tiến độ trên Server. Vui lòng nhập mã PIN quản lý:</p>
                                 <input 
-                                    type="password" 
-                                    value={resetPin} 
-                                    onChange={(e) => { setResetPin(e.target.value); setResetError(''); }}
+                                    type="password" value={resetPin} onChange={(e) => { setResetPin(e.target.value); setResetError(''); }}
                                     className="w-full bg-sand/20 border border-blue/30 rounded-2xl p-4 text-center text-navy font-bold tracking-[0.5em] text-xl outline-none focus:ring-2 focus:ring-red mb-2"
-                                    placeholder="• • • • •"
-                                    autoFocus
+                                    placeholder="• • • • •" autoFocus
                                 />
                                 {resetError && <p className="text-red text-xs font-bold text-center mb-4">{resetError}</p>}
                                 <div className="flex gap-3 mt-2">
-                                    <button onClick={() => setShowResetModal(false)} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50 transition-colors">Hủy</button>
-                                    <button onClick={confirmResetCampaign} className="flex-1 py-3 rounded-xl font-bold text-white bg-red hover:bg-darkred transition-colors shadow-md shadow-red/20">Xác nhận</button>
+                                    <button onClick={() => setShowResetModal(false)} className="flex-1 py-3 rounded-xl font-bold text-navy bg-sand/30 hover:bg-sand/50">Hủy</button>
+                                    <button onClick={confirmResetCampaign} className="flex-1 py-3 rounded-xl font-bold text-white bg-red hover:bg-darkred shadow-md">Xác nhận</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Header Cố định */}
+                    {/* HEADER CỐ ĐỊNH */}
                     <div className="bg-navy pt-6 pb-6 px-4 rounded-b-[2.5rem] shadow-lg sticky top-0 z-40">
                         <div className="max-w-md mx-auto">
                             <div className="flex justify-between items-center">
@@ -627,7 +689,7 @@
 
                     <div className="max-w-md mx-auto px-4 mt-6">
                         
-                        {/* TAB 1: MÀN HÌNH QUÉT CHÍNH */}
+                        {/* TAB 1: QUÉT MÃ CHÍNH */}
                         {activeTab === 'scan' && (
                             <div className="space-y-4 animate-slide-up">
                                 <SmartProductSearch 
@@ -639,7 +701,6 @@
 
                                 {currentProduct && (
                                     <div className="bg-white rounded-3xl p-5 shadow-lg border border-navy/5 relative overflow-hidden animate-in fade-in">
-                                        {/* Cảnh báo nếu ai đó trên Server đã đếm mã này */}
                                         {globalStats.countedBarcodes?.includes(currentProduct.barcode) && (
                                             <div className="bg-blue/10 text-blue font-bold text-[10px] uppercase px-3 py-1.5 rounded-b-xl absolute top-0 left-1/2 -translate-x-1/2 flex items-center gap-1">
                                                 <Icon name="check-circle-2" className="w-3 h-3"/> Đã có người đếm trên Server
@@ -654,28 +715,15 @@
                                         </div>
 
                                         <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-sm font-bold text-navy">Số lượng thực đếm trên kệ:</label>
-                                            </div>
+                                            <label className="text-sm font-bold text-navy block">Số lượng thực đếm trên kệ:</label>
                                             <input 
-                                                type="number" 
-                                                value={actualQty} 
-                                                onChange={(e)=>setActualQty(e.target.value)} 
-                                                autoFocus
+                                                type="number" value={actualQty} onChange={(e)=>setActualQty(e.target.value)} autoFocus
                                                 className="w-full bg-sand/20 border-2 border-navy/10 rounded-2xl p-5 text-4xl font-black text-center text-navy outline-none focus:border-blue transition-colors" 
                                                 placeholder="0" 
                                             />
-
-                                            {feedback && (
-                                                <div className={`p-4 rounded-xl border ${feedback.color} flex gap-3 items-start animate-in fade-in`}>
-                                                    <Icon name={feedback.icon} className="w-5 h-5 shrink-0 mt-0.5" />
-                                                    <p className="text-sm font-medium">{feedback.text}</p>
-                                                </div>
-                                            )}
-
+                                            {/* STRICT BLIND COUNT: KHÔNG HIỆN THÔNG BÁO KHỚP/THIẾU/DƯ TẠI TAB NÀY */}
                                             <button 
-                                                onClick={handleSaveCount}
-                                                disabled={actualQty === ''}
+                                                onClick={handleSaveCount} disabled={actualQty === ''}
                                                 className={`w-full font-bold py-4 rounded-2xl text-lg flex items-center justify-center transition-all ${actualQty !== '' ? 'bg-navy text-sand shadow-lg hover:bg-slate' : 'bg-sand text-slate/50'}`}
                                             >
                                                 XÁC NHẬN (LƯU LỘ TRÌNH)
@@ -684,14 +732,44 @@
                                     </div>
                                 )}
                                 
-                                {/* BẢNG TIẾN ĐỘ THI ĐUA (GLOBAL SYNC) */}
+                                {/* SMART SHELF WIDGET: GỢI Ý ĐẾM NHANH TRÊN KỆ */}
+                                {!currentProduct && smartShelfSuggestions.length > 0 && (
+                                    <div className="mt-4 bg-navy/5 p-4 rounded-3xl border border-navy/10 animate-in fade-in">
+                                        <div className="flex items-center justify-between mb-3 px-1">
+                                            <h4 className="text-xs font-black text-navy uppercase tracking-wider flex items-center gap-1.5">
+                                                <Icon name="sparkles" className="w-4 h-4 text-gold animate-pulse"/> Gợi ý sát bên kệ này:
+                                            </h4>
+                                            <span className="text-[10px] font-bold text-slate/50 bg-white px-2 py-0.5 rounded-full shadow-sm">AI Route</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {smartShelfSuggestions.map((item, idx) => (
+                                                <div key={idx} onClick={() => handleProductSelect(item)}
+                                                    className="bg-white p-3 rounded-2xl shadow-sm border border-sand/60 flex items-center justify-between cursor-pointer hover:border-blue hover:shadow-md transition-all group"
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <ProductAvatar url={item.imageUrl} />
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="font-bold text-navy text-sm truncate group-hover:text-blue transition-colors">{item.name}</p>
+                                                            <p className="text-[11px] font-mono text-slate/50 mt-0.5">SKU: {item.barcode}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-sand/30 group-hover:bg-gold group-hover:text-navy text-navy/70 text-xs font-extrabold px-3 py-2 rounded-xl transition-all flex items-center gap-1 shrink-0 ml-2">
+                                                        <span>Đếm tiếp</span><Icon name="arrow-right" className="w-3.5 h-3.5" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* BẢNG TIẾN ĐỘ THI ĐUA TỔNG */}
                                 {!currentProduct && (
-                                    <div className="mt-8 bg-white p-5 rounded-3xl shadow-sm border border-navy/5 relative overflow-hidden animate-in fade-in">
+                                    <div className="mt-6 bg-white p-5 rounded-3xl shadow-sm border border-navy/5 relative overflow-hidden animate-in fade-in">
                                         <div className="flex justify-between items-center mb-3">
                                             <h4 className="text-xs font-bold text-navy/50 uppercase tracking-wider flex items-center gap-1">
                                                 <Icon name="globe" className="w-3.5 h-3.5"/> Tiến độ tổng
                                             </h4>
-                                            <button onClick={fetchGlobalProgress} disabled={isFetchingGlobal} className="text-navy/40 hover:text-navy transition-colors flex items-center gap-1 bg-sand/30 px-2 py-1 rounded-lg" title="Làm mới tiến độ">
+                                            <button onClick={fetchGlobalProgress} disabled={isFetchingGlobal} className="text-navy/40 hover:text-navy transition-colors flex items-center gap-1 bg-sand/30 px-2 py-1 rounded-lg">
                                                 <Icon name="refresh-cw" className={`w-3.5 h-3.5 ${isFetchingGlobal ? 'animate-spin text-gold' : ''}`} />
                                                 <span className="text-[10px] font-bold">LÀM MỚI</span>
                                             </button>
@@ -702,7 +780,6 @@
                                         </div>
                                         <div className="w-full h-3 bg-sand/50 rounded-full overflow-hidden mb-4">
                                             <div className="h-full bg-green transition-all duration-500 rounded-full relative" style={{ width: `${progressPct}%` }}>
-                                                {/* Hiệu ứng loading chạy sọc khi sync */}
                                                 <div className="absolute inset-0 bg-white/20 w-full h-full -translate-x-full animate-[shimmer_2s_infinite]"></div>
                                             </div>
                                         </div>
@@ -711,7 +788,7 @@
                                             <div className="pt-4 border-t border-sand/50">
                                                 <div className="flex justify-between items-center mb-2">
                                                     <p className="text-[10px] font-bold text-navy/40 uppercase">Bảng xếp hạng đóng góp</p>
-                                                    <button onClick={handleResetClick} className="text-[10px] font-bold text-red bg-red/10 px-2 py-1 rounded hover:bg-red/20 transition-colors">
+                                                    <button onClick={() => { setShowResetModal(true); setResetPin(''); setResetError(''); }} className="text-[10px] font-bold text-red bg-red/10 px-2 py-1 rounded hover:bg-red/20 transition-colors">
                                                         Reset Kỳ Kiểm Kê
                                                     </button>
                                                 </div>
@@ -730,7 +807,7 @@
                             </div>
                         )}
 
-                        {/* TAB 2: ĐÃ KIỂM KÊ (DỮ LIỆU CHỜ GỬI CỦA MÁY NÀY) */}
+                        {/* TAB 2: ĐÃ KIỂM KÊ (DỮ LIỆU CHỜ GỬI) */}
                         {activeTab === 'counted' && (
                             <div className="space-y-3 animate-slide-up pb-10">
                                 {scannedItems.length === 0 && <p className="text-center text-slate/50 mt-10 font-medium">Chưa có sản phẩm chờ gửi.</p>}
@@ -748,24 +825,45 @@
                                     </div>
                                 )}
 
-                                {scannedItems.map((item, idx) => (
-                                    <div key={idx} className="bg-white p-4 rounded-2xl shadow-sm border border-navy/5 flex gap-3 items-center relative overflow-hidden">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-navy/20"></div>
-                                        <div className="flex-1 min-w-0 pl-2">
-                                            <div className="flex justify-between items-start mb-1">
-                                                <p className="font-bold text-navy text-sm pr-2 leading-tight">{item.name}</p>
+                                {scannedItems.map((item, idx) => {
+                                    let badgeColor = "bg-green/10 text-green border-green/30";
+                                    let badgeText = "ĐỦ HÀNG";
+                                    if (item.statusBadge === 'THIẾU') {
+                                        badgeColor = "bg-red/10 text-darkred border-red/30";
+                                        badgeText = `THIẾU ${Math.abs(item.diff)}`;
+                                    } else if (item.statusBadge === 'DƯ') {
+                                        badgeColor = "bg-gold/20 text-navy border-gold/40";
+                                        badgeText = `DƯ ${item.diff}`;
+                                    } else if (item.statusBadge === 'CẦN CHECK LẠI') {
+                                        badgeColor = "bg-red text-white font-black animate-pulse shadow-sm";
+                                        badgeText = "⚠️ CẦN CHECK LẠI";
+                                    }
+
+                                    return (
+                                        <div key={idx} className="bg-white p-4 rounded-2xl shadow-sm border border-navy/5 flex gap-3 items-center relative overflow-hidden">
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.diff === 0 ? 'bg-green' : 'bg-red'}`}></div>
+                                            <div className="flex-1 min-w-0 pl-2">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="font-bold text-navy text-sm pr-2 leading-tight truncate">{item.name}</p>
+                                                    <span className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg border shrink-0 ${badgeColor}`}>{badgeText}</span>
+                                                </div>
+                                                <p className="text-[10px] text-slate/60 font-mono tracking-tight mb-2 flex items-center gap-1">
+                                                    <Icon name="clock" className="w-3 h-3 text-slate/40"/> {item.timestampStr}
+                                                </p>
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <p className="font-mono text-slate text-xs bg-sand/30 px-1.5 py-0.5 rounded text-slate/70">SKU: {item.barcode}</p>
+                                                    <p className="text-navy font-bold bg-sand/50 px-3 py-1 rounded-lg">
+                                                        Thực đếm: <span className="text-sm font-black">{item.actualQty}</span> 
+                                                        <span className="text-[11px] text-slate/50 font-normal ml-1">(Máy: {item.systemQty})</span>
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <p className="text-[10px] text-slate/60 font-mono tracking-tight mb-2 flex items-center gap-1"><Icon name="clock" className="w-3 h-3 text-slate/40"/> {item.timestampStr}</p>
-                                            <div className="flex items-center justify-between text-xs">
-                                                <p className="font-mono text-slate text-xs bg-sand/30 px-1.5 py-0.5 rounded text-slate/70">SKU: {item.barcode}</p>
-                                                <p className="text-navy font-bold bg-sand/50 px-3 py-1 rounded-lg">Thực đếm: <span className="text-sm">{item.actualQty}</span></p>
-                                            </div>
+                                            <button onClick={() => handleEditScannedItem(item)} className="p-2 text-slate/40 hover:text-navy hover:bg-sand/30 rounded-xl transition-colors shrink-0" title="Đếm lại món này">
+                                                <Icon name="pencil" className="w-5 h-5" />
+                                            </button>
                                         </div>
-                                        <button onClick={() => handleEditScannedItem(item)} className="p-2 text-slate/40 hover:text-navy hover:bg-sand/30 rounded-xl transition-colors shrink-0" title="Sửa số lượng">
-                                            <Icon name="pencil" className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -774,7 +872,7 @@
                             <div className="space-y-3 animate-slide-up pb-10">
                                 <div className="bg-blue/10 text-navy p-4 rounded-2xl mb-4 border border-blue/20 flex gap-3 shadow-sm">
                                     <Icon name="radar" className="shrink-0 text-blue mt-0.5" />
-                                    <div className="text-xs font-medium">Hệ thống đang loại trừ <b className="text-blue">{globalStats.countedBarcodes?.length || 0} sản phẩm</b> đã được cửa hàng kiểm đếm thành công trên Server.</div>
+                                    <div className="text-xs font-medium">Hệ thống tự động loại trừ <b className="text-blue">{globalStats.countedBarcodes?.length || 0} sản phẩm</b> đã được kiểm đếm thành công trên Server.</div>
                                 </div>
                                 {sortedUncounted.slice(0, 50).map((item, idx) => (
                                     <div key={idx} onClick={() => { setActiveTab('scan'); handleManualSearch(item.barcode); }} className="bg-white p-4 rounded-2xl shadow-sm border border-navy/5 flex gap-4 items-center cursor-pointer hover:bg-sand/30 transition-colors">
@@ -786,12 +884,13 @@
                                         <Icon name="chevron-right" className="text-slate/30 w-5 h-5" />
                                     </div>
                                 ))}
-                                {sortedUncounted.length > 50 && <p className="text-center text-xs text-slate/50 font-medium pt-4">... và {sortedUncounted.length - 50} sản phẩm khác (bị ẩn để giảm lag).</p>}
+                                {sortedUncounted.length > 50 && <p className="text-center text-xs text-slate/50 font-medium pt-4">... và {sortedUncounted.length - 50} sản phẩm khác (ẩn để giảm tải trình duyệt).</p>}
                             </div>
                         )}
 
                     </div>
 
+                    {/* BOTTOM NAVIGATION */}
                     <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
                         <div className="bg-white/95 backdrop-blur-md shadow-[0_20px_40px_rgb(16,63,103,0.12)] rounded-3xl flex justify-around p-2 w-full max-w-md pointer-events-auto">
                             <button onClick={() => navigateTo('index.html')} className="flex flex-col items-center justify-center w-full py-3 rounded-2xl text-slate hover:bg-sand/30 transition-all"><Icon name="clock" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">CẬN DATE</span></button>
@@ -803,7 +902,9 @@
                 </div>
             );
         };
-        const root = ReactDOM.createRoot(document.getElementById('root')); root.render(<App />);
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
