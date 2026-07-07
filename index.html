@@ -36,35 +36,6 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; display: none; } }
         .toast-message { animation: fadeOut 3s forwards; }
-        
-        /* --------------------------------------------------------
-           UI MỚI CHO CAMERA (THIẾT KẾ DẠNG BOTTOM SHEET BÁN LẺ)
-        -----------------------------------------------------------*/
-        #reader { width: 100% !important; border: none !important; background: #000 !important; display: flex !important; flex-direction: column-reverse !important; flex: 1; }
-        
-        /* Bảng điều khiển màu trắng ở dưới cùng */
-        #reader__dashboard { width: 100% !important; padding: 24px 20px 32px 20px !important; margin: 0 !important; z-index: 10; background: white; border-radius: 1.5rem 1.5rem 0 0; box-shadow: 0 -4px 25px rgba(0,0,0,0.2); }
-        
-        /* Container chứa Video tràn viền */
-        #reader__scan_region { width: 100% !important; background: #000; flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
-        #reader video { width: 100% !important; height: auto !important; max-height: 100%; display: block; object-fit: contain; }
-        
-        /* Ẩn link rác của thư viện */
-        #reader a[href^="https://scanapp.org"] { display: none !important; }
-        
-        /* Chỉnh style Text "Chọn Camera" */
-        #reader__dashboard_section_csr span { font-size: 13px !important; text-align: center; display: block; margin-bottom: 8px; color: #103F67; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        /* Khung thả xuống Chọn Camera */
-        #reader__dashboard_section_csr select { width: 100% !important; padding: 14px 16px !important; border-radius: 12px !important; border: 2px solid #E4DBD1 !important; font-weight: bold !important; color: #103F67 !important; background-color: #F8F9FA !important; margin-bottom: 16px !important; outline: none; appearance: none; text-align: center; font-size: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        
-        /* Nút Bắt đầu / Dừng / Cấp quyền */
-        #reader button { background-color: #103F67 !important; color: white !important; padding: 16px 20px !important; border-radius: 12px !important; font-weight: 800 !important; border: none !important; width: 100% !important; display: block !important; box-shadow: 0 4px 12px rgba(16, 63, 103, 0.15) !important; text-transform: uppercase; font-size: 15px !important; margin-bottom: 12px !important; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; }
-        #reader button:active { transform: scale(0.98); }
-        
-        /* Nút Chuyển chế độ File / Camera */
-        #html5-qrcode-anchor-scan-type-change { text-decoration: none !important; color: #39A8D9 !important; font-weight: 800 !important; display: block !important; text-align: center !important; margin-top: 10px !important; padding: 14px !important; text-transform: uppercase; font-size: 14px !important; background: #E4DBD140; border-radius: 12px; border: 2px dashed #39A8D9; transition: all 0.2s; }
-        #reader__dashboard_section_swaplink { text-align: center !important; width: 100%; margin-top: 0 !important; }
     </style>
 </head>
 <body>
@@ -155,99 +126,139 @@
             return <div className="w-12 h-12 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-6 h-6 text-slate/40" /></div>;
         };
 
-        const BarcodeScanner = ({ onScanSuccess, onClose }) => {
-            useEffect(() => {
-                // Kích hoạt tất cả các chuẩn mã vạch bán lẻ và QR
-                const formats = window.Html5QrcodeSupportedFormats ? [
-                    window.Html5QrcodeSupportedFormats.EAN_13, 
-                    window.Html5QrcodeSupportedFormats.EAN_8,
-                    window.Html5QrcodeSupportedFormats.UPC_A,
-                    window.Html5QrcodeSupportedFormats.UPC_E,
-                    window.Html5QrcodeSupportedFormats.CODE_128,
-                    window.Html5QrcodeSupportedFormats.CODE_39,
-                    window.Html5QrcodeSupportedFormats.QR_CODE, 
-                    window.Html5QrcodeSupportedFormats.DATA_MATRIX
-                ] : undefined;
-                
-                // Tính toán Native Aspect Ratio trên điện thoại để Video tràn màn hình không bị móp méo
-                const isMobile = window.innerWidth < 768;
-                const dynamicAspectRatio = isMobile ? (window.innerWidth / window.innerHeight) : 1.333334;
+        // ============================================================================
+        // COMPONENT CAMERA QUÉT MÃ TRÀN VIỀN (NATIVE APP UX)
+        // ============================================================================
+        const FullscreenScanner = ({ onScanSuccess, onClose }) => {
+            const [hasTorch, setHasTorch] = useState(false);
+            const [torchOn, setTorchOn] = useState(false);
+            const [zoomMax, setZoomMax] = useState(1);
+            const [zoomLevel, setZoomLevel] = useState(1);
+            const scannerRef = useRef(null);
 
-                const config = { 
-                    fps: 15, 
+            useEffect(() => {
+                // Chỉ khởi tạo khi có thư viện ở window
+                if (!window.Html5Qrcode) {
+                    alert("Đang tải thư viện Camera, vui lòng thử lại sau giây lát.");
+                    onClose();
+                    return;
+                }
+
+                const html5QrCode = new window.Html5Qrcode("native-scanner-view");
+                scannerRef.current = html5QrCode;
+
+                const config = {
+                    fps: 15,
+                    // Khung quét hình chữ nhật ngang, rộng 85% màn hình, cao cố định 250px
                     qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        // Vẽ khung nhận diện hình "Chữ nhật nằm ngang" rộng rãi cho mã bán lẻ (1D)
                         const width = Math.floor(viewfinderWidth * 0.85);
-                        const height = Math.floor(Math.min(viewfinderWidth * 0.45, 250)); // Khung tối đa cao 250px
+                        const height = 250;
                         return { width, height };
                     },
-                    aspectRatio: dynamicAspectRatio, // Bắt buộc truyền để thư viện set kích thước camera chuẩn
-                    formatsToSupport: formats,
-                    experimentalFeatures: {
-                        useBarCodeDetectorIfSupported: true // Tối ưu phần cứng tăng tốc độ quét như máy bắn mã vạch
-                    }
+                    aspectRatio: window.innerHeight / window.innerWidth,
                 };
-                
-                const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
-                
-                html5QrcodeScanner.render((decodedText) => {
-                    if (decodedText && decodedText.trim() !== "") {
-                        html5QrcodeScanner.clear();
-                        onScanSuccess(decodedText.trim());
-                    }
-                }, () => {});
-                
-                // MÁY DỊCH XUYÊN SUỐT: Tự động bắt mọi thay đổi Text của thư viện để dịch sang Tiếng Việt chuẩn
-                const observer = new MutationObserver(() => {
-                    // Dịch Select Camera (giữ lại số đếm nếu có)
-                    const selectSpan = document.querySelector('#reader__dashboard_section_csr > span');
-                    if (selectSpan && selectSpan.innerText.includes('Camera') && !selectSpan.hasAttribute('data-translated')) {
-                        const matchCount = selectSpan.innerText.match(/\(\d+\)/);
-                        selectSpan.innerText = matchCount ? `CHỌN CAMERA ${matchCount[0]}` : 'CHỌN CAMERA';
-                        selectSpan.setAttribute('data-translated', 'true');
-                    }
-                    
-                    const stopBtn = document.getElementById('html5-qrcode-button-camera-stop');
-                    if (stopBtn && stopBtn.innerText !== 'DỪNG QUÉT CAMERA') stopBtn.innerText = 'DỪNG QUÉT CAMERA';
-                    
-                    const startBtn = document.getElementById('html5-qrcode-button-camera-start');
-                    if (startBtn && startBtn.innerText !== 'BẮT ĐẦU QUÉT') startBtn.innerText = 'BẮT ĐẦU QUÉT';
-                    
-                    const permBtn = document.getElementById('html5-qrcode-button-camera-permission');
-                    if (permBtn && permBtn.innerText !== 'CẤP QUYỀN CAMERA CHO WEB') permBtn.innerText = 'CẤP QUYỀN CAMERA CHO WEB';
-                    
-                    const scanFileLink = document.getElementById('html5-qrcode-anchor-scan-type-change');
-                    if (scanFileLink) {
-                        if (scanFileLink.innerText.includes('Image')) scanFileLink.innerText = 'TẢI ẢNH CÓ MÃ VẠCH TỪ MÁY';
-                        if (scanFileLink.innerText.includes('directly')) scanFileLink.innerText = 'TRỞ LẠI QUÉT TRỰC TIẾP CAMERA';
-                    }
-                    
-                    const chooseFileBtn = document.getElementById('html5-qrcode-button-file-selection');
-                    if (chooseFileBtn && chooseFileBtn.innerText !== 'CHỌN ẢNH CÓ MÃ VẠCH') chooseFileBtn.innerText = 'CHỌN ẢNH CÓ MÃ VẠCH';
-                });
-                observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
-                return () => { 
-                    observer.disconnect();
-                    html5QrcodeScanner.clear().catch(e=>console.error(e)); 
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => {
+                        if (decodedText) {
+                            html5QrCode.stop().then(() => onScanSuccess(decodedText));
+                        }
+                    },
+                    (error) => {} // Bỏ qua lỗi focus ồn
+                ).then(() => {
+                    // Kiểm tra phần cứng xem có Flash/Zoom không
+                    try {
+                        const track = html5QrCode.getRunningTrack();
+                        if (track) {
+                            const capabilities = track.getCapabilities();
+                            if (capabilities.torch) setHasTorch(true);
+                            if (capabilities.zoom) setZoomMax(capabilities.zoom.max);
+                        }
+                    } catch (e) { 
+                        console.log("Trình duyệt không hỗ trợ Flash/Zoom", e); 
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    alert("Không thể mở Camera. Vui lòng cấp quyền Camera trong cài đặt trình duyệt của bạn!");
+                    onClose();
+                });
+
+                return () => {
+                    if (html5QrCode.isScanning) {
+                        html5QrCode.stop().catch(console.error);
+                    }
                 };
-            }, [onScanSuccess]);
+            }, [onScanSuccess, onClose]);
+
+            const toggleTorch = async () => {
+                if (scannerRef.current && scannerRef.current.isScanning) {
+                    try {
+                        await scannerRef.current.applyVideoConstraints({
+                            advanced: [{ torch: !torchOn }]
+                        });
+                        setTorchOn(!torchOn);
+                    } catch (error) { 
+                        console.error("Lỗi bật đèn flash", error); 
+                        alert("Thiết bị của bạn không hỗ trợ bật Flash qua trình duyệt.");
+                    }
+                }
+            };
+
+            const handleZoom = async (e) => {
+                const val = parseFloat(e.target.value);
+                setZoomLevel(val);
+                if (scannerRef.current && scannerRef.current.isScanning) {
+                    try {
+                        await scannerRef.current.applyVideoConstraints({
+                            advanced: [{ zoom: val }]
+                        });
+                    } catch(err) { console.error("Lỗi zoom", err); }
+                }
+            };
 
             return (
-                <div className="fixed inset-0 bg-black z-[200] flex flex-col animate-in fade-in">
-                    {/* Header Top - Màu đen, sang trọng, mỏng */}
-                    <div className="flex justify-between items-center p-4 bg-black text-white shrink-0 z-50 shadow-sm border-b border-white/10">
-                        <div>
-                            <h3 className="font-bold text-lg leading-tight">Camera Quét Mã</h3>
-                            <p className="text-[11px] font-medium text-white/50 mt-0.5">Đặt mã vạch (ngang) hoặc QR (vuông) vào khung</p>
+                <div className="fixed inset-0 z-[200] bg-black flex flex-col animate-in fade-in duration-300">
+                    {/* VIDEO TRÀN KÍN MÀN HÌNH */}
+                    <div id="native-scanner-view" className="absolute inset-0 w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-cover"></div>
+
+                    {/* MASK OVERLAY KHUNG QUÉT */}
+                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10">
+                        <div className="relative w-[85%] max-w-sm h-[250px] shadow-[0_0_0_4000px_rgba(0,0,0,0.65)] rounded-3xl">
+                            <div className="absolute -top-1 -left-1 w-14 h-14 border-t-4 border-l-4 border-[#39A8D9] rounded-tl-3xl shadow-[-2px_-2px_8px_rgba(57,168,217,0.3)]"></div>
+                            <div className="absolute -top-1 -right-1 w-14 h-14 border-t-4 border-r-4 border-[#39A8D9] rounded-tr-3xl shadow-[2px_-2px_8px_rgba(57,168,217,0.3)]"></div>
+                            <div className="absolute -bottom-1 -left-1 w-14 h-14 border-b-4 border-l-4 border-[#39A8D9] rounded-bl-3xl shadow-[-2px_2px_8px_rgba(57,168,217,0.3)]"></div>
+                            <div className="absolute -bottom-1 -right-1 w-14 h-14 border-b-4 border-r-4 border-[#39A8D9] rounded-br-3xl shadow-[2px_2px_8px_rgba(57,168,217,0.3)]"></div>
                         </div>
-                        <button onClick={onClose} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                            <Icon name="x" className="w-5 h-5" />
-                        </button>
                     </div>
-                    
-                    {/* Container Scanner: Flex Column-Reverse tự động đẩy Video lên trên và Panel xuống dưới */}
-                    <div id="reader" className="w-full flex-1 flex flex-col-reverse bg-black relative"></div>
+
+                    {/* HEADER ĐÓNG / TEXT */}
+                    <div className="absolute top-0 w-full px-6 pt-12 pb-6 z-20 flex items-start justify-between bg-gradient-to-b from-black/80 to-transparent">
+                        <button onClick={onClose} className="text-white p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all pointer-events-auto shadow-md">
+                            <Icon name="x" className="w-6 h-6" />
+                        </button>
+                        <div className="flex-1 text-center pr-[52px]">
+                            <h2 className="text-white font-bold text-xl drop-shadow-md">Quét mã vạch</h2>
+                            <p className="text-white/80 text-sm mt-1 font-medium px-2">Đặt Barcode/QRcode vào trong khung</p>
+                        </div>
+                    </div>
+
+                    {/* BOTTOM FLASH / ZOOM */}
+                    <div className="absolute bottom-0 w-full px-6 pb-[100px] pt-8 z-20 flex flex-col items-center gap-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-auto">
+                        {hasTorch && (
+                            <button onClick={toggleTorch} className={`p-4 rounded-full backdrop-blur-xl transition-all ${torchOn ? 'bg-white text-black shadow-[0_0_25px_rgba(255,255,255,0.8)] scale-110' : 'bg-black/40 text-white border border-white/20 hover:bg-black/60'}`}>
+                                <Icon name="zap" className={`w-6 h-6 ${torchOn ? 'fill-current' : ''}`} />
+                            </button>
+                        )}
+                        {zoomMax > 1 && (
+                            <div className="w-full max-w-[300px] flex items-center gap-4 bg-black/50 px-5 py-3 rounded-full backdrop-blur-md border border-white/20">
+                                <button onClick={() => handleZoom({ target: { value: Math.max(1, zoomLevel - 0.5) } })}><Icon name="zoom-out" className="w-5 h-5 text-white/80 active:text-white" /></button>
+                                <input type="range" min="1" max={zoomMax} step="0.1" value={zoomLevel} onChange={handleZoom} className="w-full h-1.5 bg-white/20 rounded-lg appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-[#39A8D9] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg" />
+                                <button onClick={() => handleZoom({ target: { value: Math.min(zoomMax, zoomLevel + 0.5) } })}><Icon name="zoom-in" className="w-5 h-5 text-white/80 active:text-white" /></button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             );
         };
@@ -496,7 +507,8 @@
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
-                    {isScanning && <BarcodeScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
+                    {/* KHỞI ĐỘNG SCANNER FULLSCREEN MỚI NẾU BẤM QUÉT */}
+                    {isScanning && <FullscreenScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6 relative z-10">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
@@ -673,7 +685,8 @@
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-6 pb-28 px-4">
-                    {isScanning && <BarcodeScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
+                    {/* KHỞI ĐỘNG SCANNER FULLSCREEN MỚI NẾU BẤM QUÉT */}
+                    {isScanning && <FullscreenScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
                     <Toast message={msg.text} type={msg.type} />
                     <div className="bg-white rounded-3xl shadow-sm p-6 relative z-10">
                         <h2 className="text-xl font-bold text-navy mb-6 flex items-center tracking-tight">
@@ -985,7 +998,7 @@
 
                     <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 ${lockClass}`}>
                         <GaugeChart value={totalDiscounts - pendingDiscounts} max={totalDiscounts} label="XỬ LÝ CẬN DATE & GIẢM GIÁ" subLabelLeft={`Đã KT: ${totalDiscounts - pendingDiscounts}`} subLabelRight={`Chưa KT: ${pendingDiscounts}`} color="#F0573A" />
-                        <GaugeChart value={processedReturns} max={totalReturns} label="YÊU CẦU ĐỔI TRẢ" subLabelLeft={`Đã xử lý: ${processedReturns}`} subLabelRight={`Chờ: ${pendingReturns}`} color="#103F67" />
+                        <GaugeChart value={processedReturns} max={totalReturns} label="YÊU CẦU ĐỔTrẢ" subLabelLeft={`Đã xử lý: ${processedReturns}`} subLabelRight={`Chờ: ${pendingReturns}`} color="#103F67" />
                         <GaugeChart value={archivedOrders.length} max={orders.length + archivedOrders.length} label="XỬ LÝ ĐẶT HÀNG" subLabelLeft={`Đã chốt: ${archivedOrders.length}`} subLabelRight={`Đang chờ: ${pendingOrdersCount}`} color="#DAAF4F" />
                     </div>
 
@@ -1223,34 +1236,25 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-sand/50">
-                                                    {groupedOrders[activeOrderNppTab].map(item => {
-                                                        const alertStyle = getWaitAlert(item.hoursWait);
-                                                        return (
-                                                            <tr key={item.id} className="hover:bg-sand/10">
-                                                                <td className="p-4 flex items-center gap-3">
-                                                                    <ProductAvatar url={item.imageUrl} />
-                                                                    <div>
-                                                                        <p className="font-bold text-navy">{item.name}</p>
-                                                                        <p className="font-mono text-slate text-xs mt-0.5">SKU: {item.barcode}</p>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="p-4 text-center">
-                                                                    <span className={`inline-block text-xs font-bold px-3 py-1.5 rounded-xl border ${alertStyle.bg} ${alertStyle.text} ${alertStyle.border} ${alertStyle.pulse}`}>
-                                                                        {item.hoursWait}h ({alertStyle.icon.split(' ')[1]})
-                                                                    </span>
-                                                                </td>
-                                                                <td className="p-4 text-center">
-                                                                    <input 
-                                                                        type="number" 
-                                                                        defaultValue={item.qty} 
-                                                                        onBlur={(e) => handleOrderQtyChange(item.id, e.target.value, item.qty)}
-                                                                        className={`w-20 text-center text-lg font-black bg-transparent border-b-2 outline-none pb-1 transition-colors ${item.isEdited ? 'text-green border-green' : 'text-slate/60 border-slate/20 hover:border-blue'}`} 
-                                                                        title="Nhấp để sửa số lượng thực tế"
-                                                                    />
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
+                                                    {groupedOrders[activeOrderNppTab].map(item => (
+                                                        <tr key={item.id} className="hover:bg-sand/10">
+                                                            <td className="p-4 flex items-center gap-3">
+                                                                <ProductAvatar url={item.imageUrl} />
+                                                                <div>
+                                                                    <p className="font-bold text-navy">{item.name}</p>
+                                                                    <p className="font-mono text-slate text-xs mt-0.5">SKU: {item.barcode}</p>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-4 text-center font-bold text-navy text-lg">
+                                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${getWaitAlert(item.hoursWait).bg} ${getWaitAlert(item.hoursWait).text} ${getWaitAlert(item.hoursWait).border} ${getWaitAlert(item.hoursWait).pulse}`}>
+                                                                    {getWaitAlert(item.hoursWait).icon} ({item.hoursWait}h)
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                <input type="number" defaultValue={item.qty} onBlur={(e) => handleOrderQtyChange(item.id, e.target.value, item.qty)} className={`w-24 text-center border rounded-xl p-2.5 font-bold outline-none focus:ring-2 focus:ring-blue ${item.isEdited ? 'border-gold bg-gold/5 text-navy' : 'border-blue/30 bg-sand/10 text-slate'}`} />
+                                                            </td>
+                                                        </tr>
+                                                    ))}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -1263,101 +1267,34 @@
             );
         };
 
-        const SyncIndicator = ({ current, total }) => {
-            if (total === 0) return null;
-            return (
-                <div className="fixed top-4 right-4 z-[150] bg-navy/90 backdrop-blur text-gold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold animate-in fade-in">
-                    <Icon name="cloud-upload" className="w-4 h-4 animate-bounce" />
-                    Đang đồng bộ: {Math.min(current + 1, total)}/{total}
-                </div>
-            );
-        };
-
         const App = () => {
-            const [activeTab, setActiveTab] = useState('candate');
-            const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
-            
-            const [masterProducts, setMasterProducts] = useState(() => {
-                const cached = localStorage.getItem('ONE_STOP_PRODUCTS_CACHE');
-                return cached ? JSON.parse(cached).products || [] : [];
-            }); 
-
-            useEffect(() => {
-                const loadProductsForToday = async () => {
-                    const todayStr = new Date().toISOString().split('T')[0]; 
-                    const localDataString = localStorage.getItem('ONE_STOP_PRODUCTS_CACHE');
-                    
-                    if (localDataString) {
-                        const localData = JSON.parse(localDataString);
-                        if (localData.date === todayStr && localData.products) {
-                            setMasterProducts(localData.products); 
-                            return; 
-                        }
-                    }
-
-                    try {
-                        const response = await fetch(`${API_URL}?action=getAllProducts`);
-                        const dataFromAPI = await response.json();
-                        
-                        if (dataFromAPI && dataFromAPI.products) {
-                            const dataToSave = {
-                                date: todayStr,
-                                products: dataFromAPI.products
-                            };
-                            localStorage.setItem('ONE_STOP_PRODUCTS_CACHE', JSON.stringify(dataToSave));
-                            setMasterProducts(dataFromAPI.products);
-                        }
-                    } catch (error) {
-                        if (localDataString) {
-                            setMasterProducts(JSON.parse(localDataString).products);
-                        }
-                    }
-                };
-                
-                loadProductsForToday();
-            }, []);
-            
+            const [view, setView] = useState('candate');
             const [syncQueue, setSyncQueue] = useState([]);
-            const [syncTotal, setSyncTotal] = useState(0);
-            const [syncProcessed, setSyncProcessed] = useState(0);
-            const isSyncingRef = useRef(false);
+            const [masterProducts, setMasterProducts] = useState([]);
+            const [locallyUploadedImages, setLocallyUploadedImages] = useState({});
 
             useEffect(() => {
-                if (syncQueue.length === 0) { setSyncTotal(0); setSyncProcessed(0); }
-            }, [syncQueue]);
-
-            useEffect(() => {
-                const handleBeforeUnload = (e) => {
-                    if (syncQueue.length > 0) { const message = 'Hệ thống đang được đồng bộ, đề nghị bạn không tắt đi.'; e.preventDefault(); e.returnValue = message; return message; }
-                };
-                window.addEventListener('beforeunload', handleBeforeUnload);
-                return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-            }, [syncQueue]);
-
-            useEffect(() => {
-                if (syncQueue.length === 0 || isSyncingRef.current) return;
-                const processNext = async () => {
-                    isSyncingRef.current = true;
-                    const currentItem = syncQueue[0];
-                    try {
-                        await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(currentItem.payload) });
-                        setSyncProcessed(prev => prev + 1);
-                        setSyncQueue(prev => prev.filter(item => item.id !== currentItem.id));
-                    } catch (error) {
-                        await new Promise(res => setTimeout(res, 3000));
-                        setSyncQueue(prev => { const newQ = [...prev.filter(item => item.id !== currentItem.id), currentItem]; return newQ; });
-                    } finally { isSyncingRef.current = false; }
-                };
-                processNext();
-            }, [syncQueue]);
-
-            const addToSyncQueue = (payload) => {
-                const newItem = { id: Date.now() + Math.random().toString(), payload };
-                setSyncQueue(prev => {
-                    if (prev.length === 0) { setSyncTotal(1); setSyncProcessed(0); } else { setSyncTotal(t => t + 1); }
-                    return [...prev, newItem];
-                });
-            };
+                const cached = localStorage.getItem('ONE_STOP_PRODUCTS_CACHE');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    setMasterProducts(parsed.products || []);
+                    setLocallyUploadedImages(parsed.locallyUploadedImages || {});
+                }
+                
+                fetch(`${API_URL}?action=getAllProducts`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.products) {
+                        setMasterProducts(data.products);
+                        localStorage.setItem('ONE_STOP_PRODUCTS_CACHE', JSON.stringify({
+                            date: new Date().toISOString().split('T')[0],
+                            products: data.products,
+                            locallyUploadedImages: locallyUploadedImages
+                        }));
+                    }
+                })
+                .catch(err => console.warn("Lỗi tải danh mục gốc, đang dùng cache:", err));
+            }, []);
 
             const updateLocalCache = (barcode, name, npp, imageUrl) => {
                 setMasterProducts(prev => {
@@ -1375,31 +1312,68 @@
                     }
                     localStorage.setItem('ONE_STOP_PRODUCTS_CACHE', JSON.stringify({
                         date: new Date().toISOString().split('T')[0],
-                        products: newProducts
+                        products: newProducts,
+                        locallyUploadedImages: { ...locallyUploadedImages, [barcode]: true }
                     }));
                     return newProducts;
                 });
             };
 
+            const addToSyncQueue = (payload) => {
+                const newItem = { id: Date.now() + Math.random().toString(), payload };
+                setSyncQueue(prev => [...prev, newItem]);
+            };
+
+            const isSyncingRef = useRef(false);
+            useEffect(() => {
+                if (syncQueue.length === 0 || isSyncingRef.current) return;
+                
+                const processNext = async () => {
+                    isSyncingRef.current = true;
+                    const currentItem = syncQueue[0];
+                    try {
+                        await fetch(API_URL, { 
+                            method: 'POST', 
+                            mode: 'no-cors', 
+                            headers: { 'Content-Type': 'text/plain' }, 
+                            body: JSON.stringify(currentItem.payload) 
+                        });
+                        setSyncQueue(prev => prev.filter(item => item.id !== currentItem.id));
+                    } catch (error) {
+                        await new Promise(res => setTimeout(res, 4000));
+                        setSyncQueue(prev => [...prev.filter(item => item.id !== currentItem.id), currentItem]);
+                    } finally {
+                        isSyncingRef.current = false;
+                    }
+                };
+                processNext();
+            }, [syncQueue]);
+
             return (
                 <div className="bg-sand min-h-screen font-sans pb-20">
-                    <SyncIndicator current={syncProcessed} total={syncTotal} />
+                    {syncQueue.length > 0 && (
+                        <div className="fixed top-4 right-4 z-[150] bg-navy/90 backdrop-blur text-gold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold animate-in fade-in">
+                            <Icon name="cloud-upload" className="w-4 h-4 animate-bounce" />
+                            Đang xếp hàng đồng bộ: {syncQueue.length} gói tin
+                        </div>
+                    )}
                     <div className="w-full">
-                        {activeTab === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} updateLocalCache={updateLocalCache} />}
-                        {activeTab === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} updateLocalCache={updateLocalCache} />}
-                        {activeTab === 'dashboard' && <ViewDashboard addToSyncQueue={addToSyncQueue} />}
+                        {view === 'candate' && <ViewCanDate addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} updateLocalCache={updateLocalCache} />}
+                        {view === 'dathang' && <ViewDatHang locallyUploadedImages={locallyUploadedImages} setLocallyUploadedImages={setLocallyUploadedImages} addToSyncQueue={addToSyncQueue} masterProducts={masterProducts} updateLocalCache={updateLocalCache} />}
+                        {view === 'dashboard' && <ViewDashboard addToSyncQueue={addToSyncQueue} />}
                     </div>
+                    
                     <div className="fixed bottom-6 w-full flex justify-center z-50 px-4 pointer-events-none">
                         <div className="bg-white/90 backdrop-blur-md shadow-[0_20px_40px_rgb(16,63,103,0.12)] rounded-3xl flex justify-around p-2 w-full max-w-md pointer-events-auto">
-                            <button onClick={() => setActiveTab('candate')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="clock" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">CẬN DATE</span></button>
-                            <button onClick={() => setActiveTab('dathang')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="shopping-cart" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">ĐẶT HÀNG</span></button>
+                            <button onClick={() => { setView('candate'); setActiveTab('candate'); }} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${view === 'candate' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="clock" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">CẬN DATE</span></button>
+                            <button onClick={() => { setView('dathang'); setActiveTab('dathang'); }} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${view === 'dathang' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="shopping-cart" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">ĐẶT HÀNG</span></button>
                             
                             <button onClick={() => window.location.href='kiem-ke.html'} className="flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all text-slate hover:bg-sand/30">
                                 <Icon name="clipboard-check" className="h-5 w-5 mb-1" />
                                 <span className="text-[10px] font-bold tracking-wider">KIỂM KÊ</span>
                             </button>
                             
-                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${activeTab === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="layout-dashboard" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">DASHBOARD</span></button>
+                            <button onClick={() => { setView('dashboard'); setActiveTab('dashboard'); }} className={`flex flex-col items-center justify-center w-full py-3 rounded-2xl transition-all ${view === 'dashboard' ? 'bg-navy text-gold shadow-md' : 'text-slate hover:bg-sand/30'}`}><Icon name="layout-dashboard" className="h-5 w-5 mb-1" /><span className="text-[10px] font-bold tracking-wider">DASHBOARD</span></button>
                         </div>
                     </div>
                 </div>
