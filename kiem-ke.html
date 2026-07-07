@@ -40,25 +40,6 @@
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
         @keyframes shimmer { 100% { transform: translateX(100%); } }
-        
-        #reader { width: 100% !important; border: none !important; background: transparent !important; }
-        #reader video { object-fit: cover !important; border-radius: 1rem; width: 100% !important; }
-        #reader * { box-sizing: border-box !important; }
-        #reader__dashboard_section_csr { padding: 15px 10px !important; width: 100% !important; }
-        #reader__dashboard_section_csr span { font-size: 14px !important; text-align: center; display: block; margin-bottom: 10px; color: #103F67; font-weight: 600; }
-        #html5-qrcode-button-camera-permission { 
-            background-color: #103F67 !important; color: white !important; 
-            padding: 12px 20px !important; border-radius: 12px !important; 
-            font-weight: bold !important; border: none !important; 
-            width: 100% !important; margin: 0 auto !important; display: block !important;
-            box-shadow: 0 4px 6px rgba(16, 63, 103, 0.2) !important;
-        }
-        #html5-qrcode-anchor-scan-type-change { 
-            text-decoration: none !important; color: #39A8D9 !important; 
-            font-weight: bold !important; display: inline-block !important; 
-            margin-top: 15px !important; padding: 10px !important;
-        }
-        #reader__dashboard_section_swaplink { text-align: center !important; margin-top: 10px !important; }
     </style>
 </head>
 <body>
@@ -66,6 +47,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
+        // LƯU Ý: Đây là link API Google Apps Script của bạn
         const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec";
 
         // --- COMPONENT ICON ---
@@ -86,60 +68,117 @@
             return <div className="w-12 h-12 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-center shrink-0"><Icon name="package" className="w-6 h-6 text-slate/40" /></div>;
         };
 
-        // --- COMPONENT MÁY QUÉT CAMERA VIỆT HÓA ---
-        const BarcodeScanner = ({ onScanSuccess, onClose }) => {
+        // --- COMPONENT FULLSCREEN SCANNER (NATIVE UX) ---
+        const FullscreenScanner = ({ onScanSuccess, onClose }) => {
+            const [hasTorch, setHasTorch] = useState(false);
+            const [torchOn, setTorchOn] = useState(false);
+            const [zoomMax, setZoomMax] = useState(1);
+            const [zoomLevel, setZoomLevel] = useState(1);
+            const scannerRef = useRef(null);
+
             useEffect(() => {
-                const formats = window.Html5QrcodeSupportedFormats ? [
-                    window.Html5QrcodeSupportedFormats.EAN_13, window.Html5QrcodeSupportedFormats.EAN_8,
-                    window.Html5QrcodeSupportedFormats.QR_CODE, window.Html5QrcodeSupportedFormats.DATA_MATRIX
-                ] : undefined;
-                
-                const config = { 
-                    fps: 15, 
-                    qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        return {
-                            width: Math.min(viewfinderWidth * 0.8, 280),
-                            height: Math.min(viewfinderHeight * 0.6, 200)
-                        };
+                if (!window.Html5Qrcode) {
+                    alert("Đang tải thư viện Camera, vui lòng thử lại sau giây lát.");
+                    onClose();
+                    return;
+                }
+
+                const html5QrCode = new window.Html5Qrcode("native-scanner-view");
+                scannerRef.current = html5QrCode;
+
+                const config = {
+                    fps: 15,
+                    qrbox: (viewfinderWidth, viewfinderHeight) => ({
+                        width: Math.floor(viewfinderWidth * 0.85),
+                        height: 250
+                    }),
+                    aspectRatio: window.innerHeight / window.innerWidth,
+                    videoConstraints: { facingMode: "environment" }
+                };
+
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => {
+                        if (decodedText) {
+                            html5QrCode.stop().then(() => onScanSuccess(decodedText.trim()));
+                        }
                     },
-                    formatsToSupport: formats 
-                };
-                
-                const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
-                
-                html5QrcodeScanner.render((decodedText) => {
-                    if (/^\d+$/.test(decodedText.trim())) {
-                        html5QrcodeScanner.clear();
-                        onScanSuccess(decodedText.trim());
-                    }
-                }, () => {});
-
-                // Việt hóa ngầm thư viện Quét mã
-                const observer = new MutationObserver(() => {
-                    const btn = document.getElementById('html5-qrcode-button-camera-permission');
-                    if (btn && btn.innerText !== "CẤP QUYỀN MỞ CAMERA") btn.innerText = "CẤP QUYỀN MỞ CAMERA";
-                    const span = document.querySelector('#reader__dashboard_section_csr span');
-                    if (span && span.innerText.includes("Requesting camera")) span.innerText = "Vui lòng bấm nút bên dưới để bật camera";
-                    const anchor = document.getElementById('html5-qrcode-anchor-scan-type-change');
-                    if (anchor && anchor.innerText.includes("Scan an Image File")) anchor.innerText = "Hoặc chọn ảnh mã vạch từ máy";
+                    (error) => {} // Bỏ qua log nhiễu khung hình
+                ).then(() => {
+                    try {
+                        const track = html5QrCode.getRunningTrack();
+                        if (track) {
+                            const capabilities = track.getCapabilities();
+                            if (capabilities.torch) setHasTorch(true);
+                            if (capabilities.zoom) setZoomMax(capabilities.zoom.max);
+                        }
+                    } catch (e) { console.log("Thiết bị không hỗ trợ Flash/Zoom mở rộng"); }
+                }).catch(err => {
+                    alert("Không thể mở Camera. Vui lòng cấp quyền trong cài đặt trình duyệt!");
+                    onClose();
                 });
-                observer.observe(document.body, { childList: true, subtree: true });
 
-                return () => { 
-                    observer.disconnect();
-                    html5QrcodeScanner.clear().catch(e=>console.error(e)); 
-                };
-            }, [onScanSuccess]);
+                return () => { if (html5QrCode.isScanning) html5QrCode.stop().catch(console.error); };
+            }, [onScanSuccess, onClose]);
+
+            const toggleTorch = async () => {
+                if (scannerRef.current && scannerRef.current.isScanning) {
+                    try {
+                        await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: !torchOn }] });
+                        setTorchOn(!torchOn);
+                    } catch (error) { alert("Thiết bị không hỗ trợ bật Flash qua trình duyệt."); }
+                }
+            };
+
+            const handleZoom = async (val) => {
+                setZoomLevel(val);
+                if (scannerRef.current && scannerRef.current.isScanning) {
+                    try { await scannerRef.current.applyVideoConstraints({ advanced: [{ zoom: val }] }); } 
+                    catch(err) { console.error("Lỗi zoom", err); }
+                }
+            };
 
             return (
-                <div className="fixed inset-0 bg-navy/90 z-[100] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white p-4 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden flex flex-col items-center">
-                        <button onClick={onClose} className="absolute z-50 top-3 right-3 text-slate hover:bg-sand/30 p-2 rounded-full transition-colors">
+                <div className="fixed inset-0 z-[200] bg-black flex flex-col animate-in fade-in duration-300">
+                    {/* Layer 1: Camera Video */}
+                    <div id="native-scanner-view" className="absolute inset-0 w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-cover"></div>
+                    
+                    {/* Layer 2: Overlay Đục lỗ */}
+                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10">
+                        <div className="relative w-[85%] max-w-sm h-[250px] shadow-[0_0_0_4000px_rgba(0,0,0,0.65)] rounded-3xl">
+                            <div className="absolute -top-1 -left-1 w-14 h-14 border-t-4 border-l-4 border-[#39A8D9] rounded-tl-3xl shadow-[-2px_-2px_8px_rgba(57,168,217,0.3)]"></div>
+                            <div className="absolute -top-1 -right-1 w-14 h-14 border-t-4 border-r-4 border-[#39A8D9] rounded-tr-3xl shadow-[2px_-2px_8px_rgba(57,168,217,0.3)]"></div>
+                            <div className="absolute -bottom-1 -left-1 w-14 h-14 border-b-4 border-l-4 border-[#39A8D9] rounded-bl-3xl shadow-[-2px_2px_8px_rgba(57,168,217,0.3)]"></div>
+                            <div className="absolute -bottom-1 -right-1 w-14 h-14 border-b-4 border-r-4 border-[#39A8D9] rounded-br-3xl shadow-[2px_2px_8px_rgba(57,168,217,0.3)]"></div>
+                        </div>
+                    </div>
+
+                    {/* Layer 3: Header Điều Khiển */}
+                    <div className="absolute top-0 w-full px-6 pt-12 pb-6 z-20 flex items-start justify-between bg-gradient-to-b from-black/80 to-transparent">
+                        <button onClick={onClose} className="text-white p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all pointer-events-auto shadow-md">
                             <Icon name="x" className="w-6 h-6" />
                         </button>
-                        <div className="w-12 h-1.5 bg-sand rounded-full mb-4 mt-2"></div>
-                        <h3 className="text-center font-bold text-navy mb-4 w-full">Camera Quét Mã</h3>
-                        <div id="reader" className="w-full relative rounded-2xl overflow-hidden min-h-[300px] flex items-center justify-center bg-sand/10"></div>
+                        <div className="flex-1 text-center pr-[52px]">
+                            <h2 className="text-white font-bold text-xl drop-shadow-md">Quét mã vạch</h2>
+                            <p className="text-white/80 text-sm mt-1 font-medium px-2">Đặt Barcode/QRcode vào trong khung</p>
+                        </div>
+                    </div>
+
+                    {/* Layer 4: Đèn Flash & Zoom */}
+                    <div className="absolute bottom-0 w-full px-6 pb-[100px] pt-8 z-20 flex flex-col items-center gap-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-auto">
+                        {hasTorch && (
+                            <button onClick={toggleTorch} className={`p-4 rounded-full backdrop-blur-xl transition-all ${torchOn ? 'bg-white text-black shadow-[0_0_25px_rgba(255,255,255,0.8)] scale-110' : 'bg-black/40 text-white border border-white/20 hover:bg-black/60'}`}>
+                                <Icon name="zap" className={`w-6 h-6 ${torchOn ? 'fill-current' : ''}`} />
+                            </button>
+                        )}
+                        {zoomMax > 1 && (
+                            <div className="w-full max-w-[300px] flex items-center gap-4 bg-black/50 px-5 py-3 rounded-full backdrop-blur-md border border-white/20">
+                                <button onClick={() => handleZoom(Math.max(1, zoomLevel - 0.5))}><Icon name="zoom-out" className="text-white/80 active:text-white w-5 h-5" /></button>
+                                <input type="range" min="1" max={zoomMax} step="0.1" value={zoomLevel} onChange={(e) => handleZoom(parseFloat(e.target.value))} className="w-full h-1.5 bg-white/20 rounded-lg appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-[#39A8D9] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg" />
+                                <button onClick={() => handleZoom(Math.min(zoomMax, zoomLevel + 0.5))}><Icon name="zoom-in" className="text-white/80 active:text-white w-5 h-5" /></button>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -404,7 +443,7 @@
                 }
             }, [searchInput]);
 
-            // --- HÀM THỰC THI LƯU TRỮ VÀ HỌC LỘ TRÌNH ---
+            // --- HÀM THỰC THI LƯU TRỮ VÀ HỌC LỘ TRÌNH (UPSERT LOGIC) ---
             const executeSaveCount = (targetProduct, targetQty) => {
                 const prod = targetProduct || currentProduct;
                 const countVal = targetQty !== undefined ? targetQty : parseInt(actualQty);
@@ -697,7 +736,17 @@
                                     masterProducts={masterProducts} onProductSelect={handleProductSelect} onScanClick={() => setIsScanning(true)}
                                 />
 
-                                {isScanning && <BarcodeScanner onScanSuccess={(code) => { setSearchInput(code); handleManualSearch(code); }} onClose={() => setIsScanning(false)} />}
+                                {/* KÍCH HOẠT FULLSCREEN SCANNER Ở ĐÂY */}
+                                {isScanning && (
+                                    <FullscreenScanner 
+                                        onScanSuccess={(code) => { 
+                                            setSearchInput(code); 
+                                            handleManualSearch(code); 
+                                            setIsScanning(false);
+                                        }} 
+                                        onClose={() => setIsScanning(false)} 
+                                    />
+                                )}
 
                                 {currentProduct && (
                                     <div className="bg-white rounded-3xl p-5 shadow-lg border border-navy/5 relative overflow-hidden animate-in fade-in">
