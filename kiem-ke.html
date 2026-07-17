@@ -33,8 +33,10 @@
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@0.292.0/dist/umd/lucide.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <!-- Dùng jsDelivr cho tốc độ ổn định hơn, tránh lỗi tải icon -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.292.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <style>
         body { background-color: #E4DBD1; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent;}
@@ -49,18 +51,39 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
-        // LƯU Ý: Đây là link API Google Apps Script của bạn
         const API_URL = "https://script.google.com/macros/s/AKfycbyByQ4WtDdSkVBX87XeWE8KQp2xc1pqBjEijYowudbmR3aPDUy3qfA0KpnVKMQGsvA4lQ/exec";
 
-        // --- COMPONENT ICON ---
+        // ==========================================
+        // COMPONENT ICON THÔNG MINH (CHỐNG LỖI MẤT ICON TRÊN SAFARI)
+        // ==========================================
         const Icon = ({ name, className = '' }) => {
             const ref = useRef(null);
+
             useEffect(() => {
-                if (ref.current && window.lucide) {
-                    ref.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
-                    window.lucide.createIcons({ root: ref.current });
+                let interval;
+                const renderIcon = () => {
+                    if (ref.current && window.lucide) {
+                        ref.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
+                        window.lucide.createIcons({ root: ref.current });
+                        return true; 
+                    }
+                    return false;
+                };
+
+                // Liên tục thử render icon mỗi 100ms cho đến khi thư viện Lucide tải xong từ CDN
+                if (!renderIcon()) {
+                    interval = setInterval(() => {
+                        if (renderIcon()) {
+                            clearInterval(interval);
+                        }
+                    }, 100);
                 }
+
+                return () => {
+                    if (interval) clearInterval(interval);
+                };
             }, [name, className]);
+
             return <span ref={ref} style={{ display: 'contents' }}></span>;
         };
 
@@ -106,7 +129,7 @@
                             html5QrCode.stop().then(() => onScanSuccess(decodedText.trim()));
                         }
                     },
-                    (error) => {} // Bỏ qua log nhiễu khung hình
+                    (error) => {} 
                 ).then(() => {
                     try {
                         const track = html5QrCode.getRunningTrack();
@@ -143,10 +166,8 @@
 
             return (
                 <div className="fixed inset-0 z-[200] bg-black flex flex-col animate-in fade-in duration-300">
-                    {/* Layer 1: Camera Video */}
                     <div id="native-scanner-view" className="absolute inset-0 w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-cover"></div>
                     
-                    {/* Layer 2: Overlay Đục lỗ */}
                     <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10">
                         <div className="relative w-[85%] max-w-sm h-[250px] shadow-[0_0_0_4000px_rgba(0,0,0,0.65)] rounded-3xl">
                             <div className="absolute -top-1 -left-1 w-14 h-14 border-t-4 border-l-4 border-[#39A8D9] rounded-tl-3xl shadow-[-2px_-2px_8px_rgba(57,168,217,0.3)]"></div>
@@ -156,7 +177,6 @@
                         </div>
                     </div>
 
-                    {/* Layer 3: Header Điều Khiển */}
                     <div className="absolute top-0 w-full px-6 pt-12 pb-6 z-20 flex items-start justify-between bg-gradient-to-b from-black/80 to-transparent">
                         <button onClick={onClose} className="text-white p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all pointer-events-auto shadow-md">
                             <Icon name="x" className="w-6 h-6" />
@@ -167,7 +187,6 @@
                         </div>
                     </div>
 
-                    {/* Layer 4: Đèn Flash & Zoom */}
                     <div className="absolute bottom-0 w-full px-6 pb-[100px] pt-8 z-20 flex flex-col items-center gap-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-auto">
                         {hasTorch && (
                             <button onClick={toggleTorch} className={`p-4 rounded-full backdrop-blur-xl transition-all ${torchOn ? 'bg-white text-black shadow-[0_0_25px_rgba(255,255,255,0.8)] scale-110' : 'bg-black/40 text-white border border-white/20 hover:bg-black/60'}`}>
@@ -320,20 +339,13 @@
             const [resetPin, setResetPin] = useState('');
             const [resetError, setResetError] = useState('');
 
-            // 1. Tải tiến độ từ Server (BẢN CẬP NHẬT: CACHE-BUSTER)
+            // 1. Tải tiến độ từ Server (V2.0: CHUẨN XÁC, LOẠI BỎ CORS HEADER, CHỐNG CACHE BẰNG DATE.NOW)
             const fetchGlobalProgress = async () => {
                 setIsFetchingGlobal(true);
                 try {
-                    // Thêm tham số &t=Date.now() để ép trình duyệt luôn lấy data MỚI NHẤT, chống lưu đệm Safari
+                    // Dùng &t=Date.now() là đủ để trình duyệt tải mới dữ liệu, không dùng custom headers để tránh lỗi CORS
                     const url = `${API_URL}?action=getKiemKeProgress&t=${Date.now()}`;
-                    const res = await fetch(url, {
-                        method: 'GET',
-                        cache: 'no-store',
-                        headers: {
-                            'Pragma': 'no-cache',
-                            'Cache-Control': 'no-cache'
-                        }
-                    });
+                    const res = await fetch(url);
                     const data = await res.json();
                     if (!data.error) setGlobalStats(data);
                 } catch (error) { 
@@ -546,7 +558,6 @@
                 executeSaveCount(currentProduct, countVal);
             };
 
-            // BẢN CẬP NHẬT: DELAY 1 GIÂY KHI FETCH DATA ĐỂ SHEET KỊP UPSERT
             const handleSyncToServer = async () => {
                 if (scannedItems.length === 0) return alert("Chưa có dữ liệu nào để gửi!");
                 if (!confirm(`Bạn có chắc chắn muốn gửi ${scannedItems.length} sản phẩm đã kiểm lên hệ thống?`)) return;
@@ -584,7 +595,6 @@
                 } catch (error) { setResetError("Lỗi kết nối khi reset hệ thống!"); }
             };
 
-            // Blind Re-Entry: Xóa trắng ô input khi bấm Sửa
             const handleEditScannedItem = (itemToEdit) => {
                 setScannedItems(prev => prev.filter(item => item.barcode !== itemToEdit.barcode));
                 setCurrentProduct({ ...itemToEdit, isBeingEdited: true });
@@ -756,6 +766,7 @@
                     <div className="max-w-md mx-auto px-4 mt-6">
                         
                         {/* TAB 1: QUÉT MÃ CHÍNH */}
+                        {}
                         {activeTab === 'scan' && (
                             <div className="space-y-4 animate-slide-up">
                                 <SmartProductSearch 
@@ -884,6 +895,7 @@
                         )}
 
                         {/* TAB 2: ĐÃ KIỂM KÊ (DỮ LIỆU CHỜ GỬI) */}
+                        {}
                         {activeTab === 'counted' && (
                             <div className="space-y-3 animate-slide-up pb-10">
                                 {scannedItems.length === 0 && <p className="text-center text-slate/50 mt-10 font-medium">Chưa có sản phẩm chờ gửi.</p>}
@@ -944,6 +956,7 @@
                         )}
 
                         {/* TAB 3: CHƯA KIỂM KÊ */}
+                        {}
                         {activeTab === 'uncounted' && (
                             <div className="space-y-3 animate-slide-up pb-10">
                                 <div className="bg-blue/10 text-navy p-4 rounded-2xl mb-4 border border-blue/20 flex gap-3 shadow-sm">
@@ -983,4 +996,4 @@
         root.render(<App />);
     </script>
 </body>
-</html> 
+</html>
