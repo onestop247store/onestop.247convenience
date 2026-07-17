@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ONE STOP - Inventory Audit Hub</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -28,6 +29,7 @@
         }
     </script>
     
+    <!-- React & Libraries CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
@@ -318,15 +320,27 @@
             const [resetPin, setResetPin] = useState('');
             const [resetError, setResetError] = useState('');
 
-            // 1. Tải tiến độ từ Server
+            // 1. Tải tiến độ từ Server (BẢN CẬP NHẬT: CACHE-BUSTER)
             const fetchGlobalProgress = async () => {
                 setIsFetchingGlobal(true);
                 try {
-                    const res = await fetch(`${API_URL}?action=getKiemKeProgress`);
+                    // Thêm tham số &t=Date.now() để ép trình duyệt luôn lấy data MỚI NHẤT, chống lưu đệm Safari
+                    const url = `${API_URL}?action=getKiemKeProgress&t=${Date.now()}`;
+                    const res = await fetch(url, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: {
+                            'Pragma': 'no-cache',
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
                     const data = await res.json();
                     if (!data.error) setGlobalStats(data);
-                } catch (error) { console.log("Lỗi tải Global Stats:", error); } 
-                finally { setIsFetchingGlobal(false); }
+                } catch (error) { 
+                    console.log("Lỗi tải Global Stats:", error); 
+                } finally { 
+                    setIsFetchingGlobal(false); 
+                }
             };
 
             useEffect(() => { fetchGlobalProgress(); }, []);
@@ -532,6 +546,7 @@
                 executeSaveCount(currentProduct, countVal);
             };
 
+            // BẢN CẬP NHẬT: DELAY 1 GIÂY KHI FETCH DATA ĐỂ SHEET KỊP UPSERT
             const handleSyncToServer = async () => {
                 if (scannedItems.length === 0) return alert("Chưa có dữ liệu nào để gửi!");
                 if (!confirm(`Bạn có chắc chắn muốn gửi ${scannedItems.length} sản phẩm đã kiểm lên hệ thống?`)) return;
@@ -539,12 +554,24 @@
                 setIsSyncing(true);
                 try {
                     const payload = { action: "submitKiemKe", items: scannedItems };
-                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    await fetch(API_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify(payload) 
+                    });
+                    
                     alert("Đã gửi dữ liệu kiểm kê thành công!");
                     setScannedItems([]); 
-                    fetchGlobalProgress();
-                } catch (error) { alert("Lỗi kết nối khi gửi! Dữ liệu nháp vẫn được giữ an toàn trên máy."); } 
-                finally { setIsSyncing(false); }
+                    
+                    // Delay 1s để Sheet kịp xử lý UPSERT trước khi tải lại Bảng tiến độ
+                    setTimeout(() => {
+                        fetchGlobalProgress();
+                    }, 1000);
+                    
+                } catch (error) { 
+                    alert("Mạng không ổn định! Dữ liệu nháp vẫn được giữ an toàn trên máy, hãy thử lại."); 
+                } finally { 
+                    setIsSyncing(false); 
+                }
             };
 
             const confirmResetCampaign = async () => {
@@ -956,4 +983,4 @@
         root.render(<App />);
     </script>
 </body>
-</html>
+</html> 
