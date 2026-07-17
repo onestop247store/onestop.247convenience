@@ -343,7 +343,7 @@
             const fetchGlobalProgress = async () => {
                 setIsFetchingGlobal(true);
                 try {
-                    // Dùng &t=Date.now() là đủ để trình duyệt tải mới dữ liệu, không dùng custom headers để tránh lỗi CORS
+                    // Dùng &t=Date.now() là đủ để trình duyệt tải mới dữ liệu, KHÔNG dùng header lạ để tránh lỗi CORS chặn
                     const url = `${API_URL}?action=getKiemKeProgress&t=${Date.now()}`;
                     const res = await fetch(url);
                     const data = await res.json();
@@ -523,6 +523,7 @@
                     }
                 }
 
+                // KHÓA LỊCH SỬ KHI GHI ĐÈ TRÊN SERVER
                 if (globalStats.countedBarcodes?.includes(prod.barcode)) {
                     auditNote = `Cập nhật lại Server (Mới: ${countVal})`;
                 }
@@ -551,6 +552,7 @@
                 if (!currentProduct || actualQty === '') return;
                 const countVal = parseInt(actualQty);
 
+                // CHẶN HÀNH VI: NẾU SKU ĐÃ CÓ TRÊN SERVER, BẬT POP-UP XÁC NHẬN CẬP NHẬT GHI ĐÈ
                 if (globalStats.countedBarcodes?.includes(currentProduct.barcode)) {
                     setServerOverwriteConfirm({ product: currentProduct, newQty: countVal });
                     return;
@@ -694,7 +696,7 @@
                         </div>
                     )}
 
-                    {/* POP-UP: XÁC NHẬN CẬP NHẬT GHI ĐÈ SERVER */}
+                    {/* POP-UP (UPSERT): XÁC NHẬN CẬP NHẬT GHI ĐÈ SERVER */}
                     {serverOverwriteConfirm && (
                         <div className="fixed inset-0 bg-navy/85 z-[260] flex items-center justify-center px-4 backdrop-blur-md animate-in fade-in">
                             <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-in-center border-2 border-gold">
@@ -766,7 +768,6 @@
                     <div className="max-w-md mx-auto px-4 mt-6">
                         
                         {/* TAB 1: QUÉT MÃ CHÍNH */}
-                        {}
                         {activeTab === 'scan' && (
                             <div className="space-y-4 animate-slide-up">
                                 <SmartProductSearch 
@@ -788,6 +789,7 @@
 
                                 {currentProduct && (
                                     <div className="bg-white rounded-3xl p-5 shadow-lg border border-navy/5 relative overflow-hidden animate-in fade-in">
+                                        {/* BANNER CẢNH BÁO: ĐÃ CÓ NGƯỜI GỬI LÊN SERVER (UPSERT) */}
                                         {globalStats.countedBarcodes?.includes(currentProduct.barcode) && (
                                             <div className="bg-blue/10 text-blue font-bold text-[10px] uppercase px-3 py-1.5 rounded-b-xl absolute top-0 left-1/2 -translate-x-1/2 flex items-center gap-1">
                                                 <Icon name="check-circle-2" className="w-3 h-3"/> Đã có người đếm trên Server
@@ -895,7 +897,6 @@
                         )}
 
                         {/* TAB 2: ĐÃ KIỂM KÊ (DỮ LIỆU CHỜ GỬI) */}
-                        {}
                         {activeTab === 'counted' && (
                             <div className="space-y-3 animate-slide-up pb-10">
                                 {scannedItems.length === 0 && <p className="text-center text-slate/50 mt-10 font-medium">Chưa có sản phẩm chờ gửi.</p>}
@@ -956,7 +957,6 @@
                         )}
 
                         {/* TAB 3: CHƯA KIỂM KÊ */}
-                        {}
                         {activeTab === 'uncounted' && (
                             <div className="space-y-3 animate-slide-up pb-10">
                                 <div className="bg-blue/10 text-navy p-4 rounded-2xl mb-4 border border-blue/20 flex gap-3 shadow-sm">
